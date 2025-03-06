@@ -2,13 +2,13 @@ const { encrypt, decrypt } = require("../../helpers/Crypto");
 const { DevelopMood } = require("../constants/constants");
 const { getMessage } = require("../../helpers/messageLangSelector");
 const { SERVER_ERROR_CODE } = require("../constants/statusCode");
-const Controller = require("../controllers/AnalystData.controller");
+const Controller = require("../controllers/Kanban.controller");
 
 // ------------------------ || Service || ------------------------ //
 
-exports.AccountService = async (req, res) => {
+exports.TopicModifyService = async (req, res) => {
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
-    const { httpCode, result } = await Controller.AccountController(req?.user, body);
+    const { httpCode, result } = await Controller.TopicModifyController(req?.user, body);
 
     return res.status(httpCode).send({
         status: result?.status,
@@ -17,9 +17,9 @@ exports.AccountService = async (req, res) => {
     });
 };
 
-exports.TransactionFetchListService = async (req, res) => {
+exports.TopicRemoveService = async (req, res) => {
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
-    const { httpCode, result } = await Controller.TransactionFetchListController(req?.user, body);
+    const { httpCode, result } = await Controller.TopicRemoveController(req?.user, body);
 
     return res.status(httpCode).send({
         status: result?.status,
@@ -28,9 +28,9 @@ exports.TransactionFetchListService = async (req, res) => {
     });
 };
 
-exports.FinanceYearService = async (req, res) => {
+exports.TopicListService = async (req, res) => {
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
-    const { httpCode, result } = await Controller.FinanceYearController(req?.user, body);
+    const { httpCode, result } = await Controller.TopicListController(req?.user, body);
 
     return res.status(httpCode).send({
         status: result?.status,
@@ -39,9 +39,9 @@ exports.FinanceYearService = async (req, res) => {
     });
 };
 
-exports.SingleDataService = async (req, res) => {
+exports.TopicDragSortingService = async (req, res) => {
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
-    const { httpCode, result } = await Controller.SingleDataController(req?.user, body);
+    const { httpCode, result } = await Controller.TopicDragSortingController(req?.user, body);
 
     return res.status(httpCode).send({
         status: result?.status,
@@ -50,9 +50,9 @@ exports.SingleDataService = async (req, res) => {
     });
 };
 
-exports.TopCategoriesService = async (req, res) => {
+exports.TaskModifyService = async (req, res) => {
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
-    const { httpCode, result } = await Controller.TopCategoriesController(req?.user, body);
+    const { httpCode, result } = await Controller.TaskModifyController(req?.user, body);
 
     return res.status(httpCode).send({
         status: result?.status,
@@ -61,9 +61,9 @@ exports.TopCategoriesService = async (req, res) => {
     });
 };
 
-exports.TopSubCategoriesService = async (req, res) => {
+exports.TaskListService = async (req, res) => {
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
-    const { httpCode, result } = await Controller.TopSubCategoriesController(req?.user, body);
+    const { httpCode, result } = await Controller.TaskListController(req?.user, body);
 
     return res.status(httpCode).send({
         status: result?.status,
@@ -72,10 +72,9 @@ exports.TopSubCategoriesService = async (req, res) => {
     });
 };
 
-
-exports.TopSubCategoriesService = async (req, res) => {
+exports.TaskRemoveService = async (req, res) => {
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
-    const { httpCode, result } = await Controller.TopSubCategoriesController(req?.user, body);
+    const { httpCode, result } = await Controller.TaskRemoveController(req?.user, body);
 
     return res.status(httpCode).send({
         status: result?.status,
@@ -84,10 +83,9 @@ exports.TopSubCategoriesService = async (req, res) => {
     });
 };
 
-
-exports.DataFollService = async (req, res) => {
+exports.TaskDragSortingService = async (req, res) => {
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
-    const { httpCode, result } = await Controller.DataFollController(req?.user, body);
+    const { httpCode, result } = await Controller.TaskDragSortingController(req?.user, body);
 
     return res.status(httpCode).send({
         status: result?.status,

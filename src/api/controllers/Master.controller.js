@@ -94,6 +94,17 @@ exports.CategoriesFetchListController = async (payloadUser, payloadBody) => {
                         WHERE fn_categories.CategoryId = fn_sub_categories.CategoryId 
                         AND fn_categories.isDeleted = false AND fn_sub_categories.isDeleted = false
                     )`), 'TotalSubCategory'
+                    // Sequelize.literal(`(
+                    //     SELECT JSON_OBJECT(
+                    //         'TotalInCome', SUM(CASE WHEN fn_transactions.Action = 'In' THEN fn_transactions.Amount ELSE 0 END),
+                    //         'TotalExpense', SUM(CASE WHEN fn_transactions.Action = 'Out' THEN fn_transactions.Amount ELSE 0 END)
+                    //     )
+                    //     FROM fn_transactions
+                    //     WHERE fn_transactions.CategoryId = fn_categories.CategoryId
+                    //     AND fn_categories.isDeleted = false
+                    //     AND fn_transactions.isDeleted = false
+                    // )`),
+                    // 'TransactionSummary'
                 ],
                 [
                     Sequelize.literal(`(
@@ -106,7 +117,17 @@ exports.CategoriesFetchListController = async (payloadUser, payloadBody) => {
                                 'isUsing', fn_sub_categories.isUsing,
                                 'isActive', fn_sub_categories.isActive,
                                 'createdAt', fn_sub_categories.createdAt,
-                                'updatedAt', fn_sub_categories.updatedAt
+                                'updatedAt', fn_sub_categories.updatedAt,
+                                'TotalInCome', (SELECT  SUM(CASE WHEN fn_transactions.Action = 'In' THEN fn_transactions.Amount ELSE 0 END) FROM  fn_transactions
+                                    WHERE fn_transactions.SubCategoryId = fn_sub_categories.SubCategoryId 
+                                    AND fn_sub_categories.isDeleted = false
+                                    AND fn_transactions.isDeleted = false
+                                 ),
+                                'TotalExpense', (SELECT  SUM(CASE WHEN fn_transactions.Action = 'Out' THEN fn_transactions.Amount ELSE 0 END) FROM  fn_transactions
+                                    WHERE fn_transactions.SubCategoryId = fn_sub_categories.SubCategoryId 
+                                    AND fn_sub_categories.isDeleted = false
+                                    AND fn_transactions.isDeleted = false
+                                 )
                             )
                         )
                         FROM fn_sub_categories  
@@ -993,7 +1014,22 @@ exports.AccountsFetchListController = async (payloadUser, payloadBody) => {
                 "isUsing",
                 "isActive",
                 "createdAt",
-                "updatedAt"
+                "updatedAt",
+                [
+                    Sequelize.literal(`(
+                        SELECT JSON_OBJECT(
+                            'TotalInCome', SUM(CASE WHEN fn_transactions.Action = 'In' AND fn_transactions.Action = 'Debit' THEN fn_transactions.AccountAmount ELSE 0 END),
+                            'TotalExpense', SUM(CASE WHEN fn_transactions.Action = 'Out' AND fn_transactions.Action = 'Credit' THEN fn_transactions.AccountAmount ELSE 0 END),
+                            'TotalIn', SUM(CASE WHEN fn_transactions.Action IN ('In', 'To', 'Debit') THEN fn_transactions.AccountAmount ELSE 0 END),
+                            'TotalOut', SUM(CASE WHEN fn_transactions.Action IN ('Out', 'From', 'Investment', 'Credit') THEN fn_transactions.AccountAmount ELSE 0 END)
+                        )
+                        FROM fn_transactions
+                        WHERE fn_transactions.AccountId = fn_accounts.AccountId
+                        AND fn_transactions.isDeleted = false
+                        AND fn_accounts.isDeleted = false
+                    )`),
+                    'TransactionSummary'
+                ],
             ],
             where: whereCondition,
             limit: limit,
@@ -1085,8 +1121,8 @@ exports.AccountModifyController = async (payloadUser, payloadBody) => {
                 await AccountsModel.create({
                     UUID: uuidv4(),
                     AccountName: AccountName?.trim(),
-                    StartAmount: StartAmount || null,
-                    CurrentAmount: StartAmount || null,
+                    StartAmount: StartAmount || 0,
+                    CurrentAmount: StartAmount || 0,
                     MinAmount: MinAmount || null,
                     TypeId: TypeId || null,
                     Icon: Icon || null,

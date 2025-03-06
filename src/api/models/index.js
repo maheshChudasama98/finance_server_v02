@@ -25,7 +25,11 @@ db.LabelsModel = require("./Labels.model")(sequelize, DataTypes);
 db.PartiesModel = require("./Parties.model")(sequelize, DataTypes);
 db.TransactionsModel = require("./Transactions.model")(sequelize, DataTypes);
 
-// --- Join Models Here --- //
+// --- Kanban Models Here --- //
+
+db.TopicsModel = require("./Topics.model")(sequelize, DataTypes);
+db.TasksModel = require("./Tasks.model")(sequelize, DataTypes);
+
 
 // --- || Orgs || --- //
 
@@ -38,8 +42,8 @@ db.ModulesModel.belongsTo(db.OrgModel, { foreignKey: 'OrgId' });
 db.BranchesModel.hasMany(db.ModulesModel, { foreignKey: 'BranchId' });  // One to Many;
 db.ModulesModel.belongsTo(db.BranchesModel, { foreignKey: 'BranchId' });
 
-db.ModulesModel.hasMany(db.ModulesModel, { foreignKey: 'HasChildId' });  // Self Join;
-db.ModulesModel.belongsTo(db.ModulesModel, { foreignKey: 'HasChildId' });
+db.ModulesModel.hasMany(db.ModulesModel, { foreignKey: 'ParentNoteId' });  // Self Join;
+db.ModulesModel.belongsTo(db.ModulesModel, { foreignKey: 'ParentNoteId' });
 
 db.ModulesModel.hasMany(db.PermissionModel, { foreignKey: 'ModuleId' });  // One to Many;
 db.PermissionModel.belongsTo(db.ModulesModel, { foreignKey: 'ModuleId' });
@@ -157,10 +161,37 @@ db.TransactionsModel.belongsTo(db.TransactionsModel, { foreignKey: 'ParentTransa
 db.CategoriesModel.hasMany(db.TransactionsModel, { foreignKey: 'CategoryId' });
 db.TransactionsModel.belongsTo(db.CategoriesModel, { foreignKey: 'CategoryId' });
 
-db.SubCategoriesModel.hasMany(db.TransactionsModel, { foreignKey: 'SubCategoryId' });   
+db.SubCategoriesModel.hasMany(db.TransactionsModel, { foreignKey: 'SubCategoryId' });
 db.TransactionsModel.belongsTo(db.SubCategoriesModel, { foreignKey: 'SubCategoryId' });
 
 // --------------------------- // 
+
+
+// --------------------------- // 
+
+db.UserModel.hasMany(db.TopicsModel, { foreignKey: 'UsedBy' });
+db.TopicsModel.belongsTo(db.UserModel, { foreignKey: 'UsedBy' });
+
+db.OrgModel.hasMany(db.TopicsModel, { foreignKey: 'OrgId' });
+db.TopicsModel.belongsTo(db.OrgModel, { foreignKey: 'OrgId' });
+
+db.BranchesModel.hasMany(db.TopicsModel, { foreignKey: 'BranchId' });
+db.TopicsModel.belongsTo(db.BranchesModel, { foreignKey: 'BranchId' });
+
+
+// --------------------------- // 
+
+db.UserModel.hasMany(db.TasksModel, { foreignKey: 'UsedBy' });
+db.TasksModel.belongsTo(db.UserModel, { foreignKey: 'UsedBy' });
+
+db.OrgModel.hasMany(db.TasksModel, { foreignKey: 'OrgId' });
+db.TasksModel.belongsTo(db.OrgModel, { foreignKey: 'OrgId' });
+
+db.BranchesModel.hasMany(db.TasksModel, { foreignKey: 'BranchId' });
+db.TasksModel.belongsTo(db.BranchesModel, { foreignKey: 'BranchId' });
+
+db.TopicsModel.hasMany(db.TasksModel, { foreignKey: 'TopicId' });
+db.TasksModel.belongsTo(db.TopicsModel, { foreignKey: 'TopicId' });
 
 
 // db.BranchesModel.belongsToMany(db.UserModel, { through: db.BranchOwnerModel, foreignKey: 'Branch_Id', }); // Many to Many  

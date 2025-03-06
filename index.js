@@ -9,7 +9,7 @@ const cors = require('cors')
 const bodyParser = require('body-parser');
 const fileUpload = require('express-fileupload');
 const path = require("path");
-const { DefaultDatabaseAction, SuperAdminDatabaseAction } = require('./src/api/controllers/Basic.controller');
+const { DefaultDatabaseAction } = require('./src/api/controllers/Basic.controller');
 
 app.use(express.json()); // express in json data fetch for user 
 app.use(cors());

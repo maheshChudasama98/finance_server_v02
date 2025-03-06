@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const db = require("../models/index");
 const { Op } = require('sequelize');
+const { defaultCategoryList } = require('../constants/defaultData');
 
 const OrgModel = db.OrgModel;
 const RolesModel = db.RolesModel;
@@ -13,6 +14,8 @@ const PermissionModel = db.PermissionModel;
 const UserTypesModel = db.UserTypesModel;
 const UserModel = db.UserModel;
 const OrgUsersModel = db.OrgUsersModel;
+const CategoriesModel = db.CategoriesModel;
+const SubCategoriesModel = db.SubCategoriesModel;
 
 const roleList = [
     { RoleName: "User Admin", Description: "All Right have" },
@@ -32,8 +35,37 @@ const modulesList = [
     { ModulesName: "Setting", Description: "Setting" },
 ];
 
+exports.UserBasedDefaultCategory = async (UserId, OrgId, BranchId) => {
 
+    try {
 
+        for (let index = 0; index < defaultCategoryList.length; index++) {
+            const element = defaultCategoryList[index];
+
+            const created = await CategoriesModel?.create({
+                ...element,
+                UsedBy: UserId,
+                OrgId: OrgId,
+                BranchId: BranchId
+            });
+
+            for (let i = 0; i < element?.Child.length; i++) {
+                const sub = element?.Child[i];
+                console.log(sub, "sub");
+                await SubCategoriesModel?.create({
+                    ...sub,
+                    CategoryId: created?.CategoryId,
+                    UsedBy: UserId,
+                    OrgId: OrgId,
+                    BranchId: BranchId
+                });
+            }
+
+        }
+    } catch (error) {
+        console.log(`\x1b[91m ${error} \x1b[91m`);
+    };
+};
 
 
 exports.PrimeDatabaseAction = async () => {
@@ -203,7 +235,33 @@ exports.DefaultDatabaseAction = async () => {
 
 
     if (!findUser?.UserId) {
-        let createdUser = await UserModel.create(adminUser)
+
+        let createdUser = await UserModel.create(adminUser);
+
+        for (let index = 0; index < defaultCategoryList.length; index++) {
+            const element = defaultCategoryList[index];
+
+            const created = await CategoriesModel?.create({
+                ...element,
+                UsedBy: createdUser?.UserId,
+                OrgId: defaultOrg?.OrgId,
+                BranchId: defaultBranch?.BranchId
+            });
+
+            for (let i = 0; i < element?.Child.length; i++) {
+
+                const sub = element?.Child[i];
+
+                await SubCategoriesModel?.create({
+                    ...sub,
+                    CategoryId: created?.CategoryId,
+                    UsedBy: createdUser?.UserId,
+                    OrgId: defaultOrg?.OrgId,
+                    BranchId: defaultBranch?.BranchId
+                });
+            }
+
+        }
 
         await OrgUsersModel.create({
             OrgId: defaultOrg?.OrgId,

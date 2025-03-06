@@ -1,26 +1,24 @@
 module.exports = (sequelize, DataTypes) => {
 
-    const ModelTable = sequelize.define('modules', {
-        ModulesId: {
+    const ModelTable = sequelize.define('kn_Topic', {
+        TopicId: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
             primaryKey: true,
             allowNull: false,
             unique: true
         },
-        ModulesName: {
+        TopicTitle: {
             type: DataTypes.STRING,
             allowNull: false,
-            unique: true
         },
-        Description: {
-            type: DataTypes.STRING(1000),
-            allowNull: false,
+        TopicDesc: {
+            type: DataTypes.STRING(1000)
         },
-        Router: {
-            type: DataTypes.STRING,
+        ColorCode: {
+            type: DataTypes.STRING(50)
         },
-        ParentNoteId: {
+        Position: {
             type: DataTypes.INTEGER,
         },
         isActive: {
@@ -33,6 +31,10 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             defaultValue: false,
         },
+        UsedBy: {
+            type: DataTypes.INTEGER,
+            allowNull: false,
+        },
         OrgId: {
             type: DataTypes.INTEGER,
             allowNull: false,
@@ -42,7 +44,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
         },
     }, {
-        modelName: 'modules',
+        modelName: 'kn_Topic',
         initialAutoIncrement: 1,
     });
 

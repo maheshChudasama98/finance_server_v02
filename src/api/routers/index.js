@@ -23,4 +23,5 @@ module.exports = (app) => {
     require("./Master.router")(app);
     require("./Transactions.router")(app);
     require("./AnalystData.router")(app);
+    require("./Kanban.router")(app);
 };

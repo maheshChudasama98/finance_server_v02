@@ -149,43 +149,21 @@ exports.UserInfoController = async (payloadUser) => {
             raw: true
         });
 
-        const UserInfo = await UserModel.findOne({
-            attributes: [
-                "UserId",
-                "UUID",
-                "FirstName",
-                "LastName",
-                "AvatarName",
-                "Email",
-                "Mobile",
-                "ImgPath",
-                "Language",
-                [
-                    Sequelize.literal(`CONCAT(FirstName,' ', LastName)`), "FullName"
-                ]
-            ],
-            where: {
-                UserId: UserId,
-            },
-            raw: true
-        });
-
         return ({
             httpCode: SUCCESS_CODE,
             result: {
                 status: true,
                 message: "SUCCESS",
                 data: {
-                    BranchesList: {
+                    Branch: {
                         BranchesList: UserDetails?.BranchesList,
-                        SelectBranch: UserDetails?.SelectBranch[0],
+                        SelectBranch: UserDetails?.SelectBranch,
                     },
-                    OrgsList: {
+                    Org: {
                         OrgsList: UserDetails?.OrgsList,
                         SelectOrg: UserDetails?.SelectOrg,
                     },
                     PermissionList,
-                    UserInfo
                 }
             }
         });

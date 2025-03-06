@@ -45,7 +45,9 @@ module.exports.GUJARATI = {
     EMAIL_SEND_SUCCESS: "Send mail is successful!",
     EMAIL_SEND_ERROR: "Mail sending some error !",
     BAD_REQUEST_CODE: "Bad request",
+    DATE_NOT_FOUND: "Data Not Found",
     CONNECTED_STRING: "You can't delete this item as it is connected",
+
 
     // Auth controller message
     LOGIN_SUCCESS: "Login successful",

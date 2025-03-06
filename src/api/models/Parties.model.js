@@ -27,15 +27,18 @@ module.exports = (sequelize, DataTypes) => {
         },
         StartAmount: {
             type: DataTypes.DECIMAL(10, 2),
-            allowNull: 0.00,
+            allowNull: false,
+            defaultValue: 0
         },
         CurrentAmount: {
             type: DataTypes.DECIMAL(10, 2),
-            allowNull: 0.00,
+            allowNull: false,
+            defaultValue: 0
         },
         MinAmount: {
             type: DataTypes.DECIMAL(10, 2),
-            allowNull: 0.00,
+            allowNull: false,
+            defaultValue: 0
         },
         Phone: {
             type: DataTypes.STRING(40),
