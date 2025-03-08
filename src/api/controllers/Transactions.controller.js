@@ -279,8 +279,8 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
           dataObject.PartyAmount = Amount;
           break;
       }
-
-      const created = await TransactionsModel.update(dataObject, {
+      
+      await TransactionsModel.update(dataObject, {
         where: {
           TransactionId: TransactionId,
         },
@@ -749,24 +749,12 @@ exports.TransactionFetchDataController = async (payloadUser, payloadBody) => {
   }
 };
 
-exports.TransactionModifyController = async (payloadUser, payloadBody) => {
+exports.TransactionRemoveController = async (payloadUser, payloadQuery) => {
   try {
     const { OrgId, BranchId, UserId } = payloadUser;
-    const {
-      TransactionId,
-      Action,
-      Date,
-      Amount,
-      CategoryId,
-      SubCategoryId,
-      AccountId,
-      TransferToAccountId,
-      PartyId,
-      Description,
-      Tags,
-    } = payloadBody;
+    const { TransactionId } = payloadQuery;
 
-    if (!Action || !Date || !Amount || !AccountId) {
+    if (!TransactionId) {
       return {
         httpCode: BAD_REQUEST_CODE,
         result: {
@@ -775,188 +763,71 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
         },
       };
     }
+    const targetTransaction = await TransactionsModel.findOne({
+      where: {
+        TransactionId: TransactionId,
+      },
+    });
 
-    if (!TransactionId) {
-      const dataObject = {
-        Action: Action,
-        Date: Date,
-        Amount: Amount,
-        CategoryId: CategoryId,
-        SubCategoryId: SubCategoryId,
-        AccountId: AccountId,
-        PartyId: PartyId,
-        Description: Description,
-        UsedBy: UserId,
-        OrgId: OrgId,
-        BranchId: BranchId,
-      };
+    await AccountsModel.update(
+      {
+        CurrentAmount: Sequelize.literal(
+          `CurrentAmount + ${
+            targetTransaction?.AccountAmount -
+            targetTransaction?.AccountAmount * 2
+          }`
+        ),
+      },
+      { where: { AccountId: targetTransaction?.AccountId } }
+    );
 
-      if (Tags?.length > 0) {
-        dataObject.Tags = Tags.join(",");
-      }
-
-      if (TransferToAccountId) {
-        dataObject.TransferToAccountId = TransferToAccountId;
-      }
-
-      let accountUpdateString = "";
-      let transferUpdateString = "";
-      let flagTransfer = false;
-      let flagParty = false;
-
-      switch (Action) {
-        case "In":
-          accountUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
-          dataObject.AccountAmount = Amount;
-          break;
-
-        case "Out":
-          accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
-          dataObject.AccountAmount = Amount - Amount * 2;
-          break;
-
-        case "Transfer":
-          flagTransfer = true;
-          accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
-          transferUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
-          dataObject.AccountAmount = Amount - Amount * 2;
-          dataObject.Action = "From";
-          break;
-
-        case "Investment":
-          flagTransfer = true;
-          accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
-          transferUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
-          dataObject.AccountAmount = Amount - Amount * 2;
-          dataObject.Action = "Investment";
-          break;
-        case "Credit":
-          flagParty = true;
-          accountUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
-          transferUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
-          dataObject.AccountAmount = Amount;
-          dataObject.PartyAmount = Amount - Amount * 2;
-          break;
-        case "Debit":
-          flagParty = true;
-          accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
-          transferUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
-          dataObject.AccountAmount = Amount - Amount * 2;
-          dataObject.PartyAmount = Amount;
-          break;
-      }
-
-      const created = await TransactionsModel.create(dataObject);
-
-      await AccountsModel.update(
-        { CurrentAmount: accountUpdateString },
-        { where: { AccountId: AccountId } }
-      );
-
-      if (flagTransfer) {
-        await AccountsModel.update(
-          { CurrentAmount: transferUpdateString },
-          { where: { AccountId: TransferToAccountId } }
-        );
-
-        await TransactionsModel.create({
-          ...dataObject,
-          Action: "To",
-          AccountAmount: Amount,
-          AccountId: TransferToAccountId,
-          TransferToAccountId: AccountId,
-          ParentTransactionId: created?.TransactionId,
-        });
-      }
-
-      if (flagParty) {
-        await PartiesModel.update(
-          { CurrentAmount: transferUpdateString },
-          { where: { PartyId: PartyId } }
-        );
-      }
-
-      return {
-        httpCode: SUCCESS_CODE,
-        result: { status: true, message: "SUCCESS" },
-      };
-    } else {
-      const targetTransaction = await TransactionsModel.findOne({
-        where: {
-          TransactionId: TransactionId,
-        },
+    if (
+      targetTransaction?.Action == "From" ||
+      targetTransaction?.Action == "Investment"
+    ) {
+      await TransactionsModel.destroy({
+        where: { ParentTransactionId: targetTransaction?.TransactionId },
       });
 
       await AccountsModel.update(
         {
           CurrentAmount: Sequelize.literal(
+            `CurrentAmount + ${targetTransaction?.AccountAmount}`
+          ),
+        },
+        { where: { AccountId: targetTransaction?.TransferToAccountId } }
+      );
+    } else if (targetTransaction?.Action == "To") {
+      // await TransactionsModel.destroy({
+      //     where: { TransactionId: targetTransaction?.TransactionId }
+      // });
+    }
+
+    if (
+      targetTransaction?.Action == "Credit" ||
+      targetTransaction?.Action == "Debit"
+    ) {
+      await PartiesModel.update(
+        {
+          CurrentAmount: Sequelize.literal(
             `CurrentAmount + ${
-              targetTransaction?.AccountAmount -
-              targetTransaction?.AccountAmount * 2
+              targetTransaction?.PartyAmount -
+              targetTransaction?.PartyAmount * 2
             }`
           ),
         },
-        { where: { AccountId: targetTransaction?.AccountId } }
+        { where: { PartyId: targetTransaction?.PartyId } }
       );
-
-      if (
-        targetTransaction?.Action == "From" ||
-        targetTransaction?.Action == "Investment"
-      ) {
-        await TransactionsModel.destroy({
-          where: { ParentTransactionId: targetTransaction?.TransactionId },
-        });
-
-        await AccountsModel.update(
-          {
-            CurrentAmount: Sequelize.literal(
-              `CurrentAmount + ${targetTransaction?.AccountAmount}`
-            ),
-          },
-          { where: { AccountId: targetTransaction?.TransferToAccountId } }
-        );
-      } else if (targetTransaction?.Action == "To") {
-        // await TransactionsModel.destroy({
-        //     where: { TransactionId: targetTransaction?.TransactionId }
-        // });
-      }
-
-      if (
-        targetTransaction?.Action == "Credit" ||
-        targetTransaction?.Action == "Debit"
-      ) {
-        await PartiesModel.update(
-          {
-            CurrentAmount: Sequelize.literal(
-              `CurrentAmount + ${
-                targetTransaction?.PartyAmount -
-                targetTransaction?.PartyAmount * 2
-              }`
-            ),
-          },
-          { where: { PartyId: targetTransaction?.PartyId } }
-        );
-      }
-
-      const dataObject = {
-        Action: Action,
-        Date: Date,
-        Amount: Amount || null,
-        CategoryId: CategoryId || null,
-        SubCategoryId: SubCategoryId || null,
-        AccountId: AccountId || null,
-        PartyId: PartyId || null,
-        Description: Description || null,
-        UsedBy: UserId,
-        OrgId: OrgId,
-        BranchId: BranchId,
-      };
-
-      return {
-        httpCode: SUCCESS_CODE,
-        result: { status: true, message: "SUCCESS" },
-      };
     }
+
+    await TransactionsModel.destroy({
+      where: { TransactionId: targetTransaction?.TransactionId },
+    });
+
+    return {
+      httpCode: SUCCESS_CODE,
+      result: { status: true, message: "SUCCESS" },
+    };
   } catch (error) {
     console.log(`\x1b[91m ${error} \x1b[91m`);
     return {

@@ -37,3 +37,13 @@ exports.TransactionFetchDataService = async (req, res) => {
         data: DevelopMood ? result?.data : encrypt(result?.data)
     });
 };
+
+exports.TransactionRemoveService = async (req, res) => {
+    const { httpCode, result } = await Controller.TransactionRemoveController(req?.user , req?.query);
+
+    return res.status(httpCode).send({
+        status: result?.status,
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+        data: DevelopMood ? result?.data : encrypt(result?.data)
+    });
+};
