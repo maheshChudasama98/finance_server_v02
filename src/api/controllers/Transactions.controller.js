@@ -279,7 +279,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
           dataObject.PartyAmount = Amount;
           break;
       }
-      
+
       await TransactionsModel.update(dataObject, {
         where: {
           TransactionId: TransactionId,
@@ -432,7 +432,7 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
     if (FilterBy?.CategoryIds && FilterBy?.CategoryIds?.length > 0) {
       whereCondition.CategoryId = { [Op.in]: FilterBy?.CategoryIds };
     }
-    if (FilterBy?.AccountsId) {
+    if (FilterBy?.CategoryId) {
       whereCondition.CategoryId = { [Op.eq]: FilterBy?.CategoryId };
     }
     if (FilterBy?.SubCategoryIds && FilterBy?.SubCategoryIds?.length > 0) {
@@ -549,6 +549,19 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
                     )`),
           "PartyDetails",
         ],
+        [
+          Sequelize.literal(`(
+            SELECT JSON_ARRAYAGG(
+              JSON_OBJECT(
+                'LabelId', fn_labels.LabelId,
+                'LabelName', fn_labels.LabelName
+              )
+            ) 
+            FROM fn_labels AS fn_labels 
+            WHERE FIND_IN_SET(fn_labels.LabelId, fn_transactions.Tags)
+          )`),
+          "TagList",
+        ],
       ],
       where: whereCondition,
       include: [
@@ -574,6 +587,9 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
       order: [["Date", "DESC"]],
       raw: true,
     });
+
+    console.log(fetchList , "fetchList fetchList fetchList");
+    
 
     if (Action) {
       const totalCount = await TransactionsModel.count({
@@ -732,12 +748,35 @@ exports.TransactionFetchDataController = async (payloadUser, payloadBody) => {
       raw: true,
     });
 
+    const subCategoriesList = await SubCategoriesModel.findAll({
+      attributes: [
+        "SubCategoryId",
+        "SubCategoriesName",
+        "Icon",
+        "Description",
+        "CategoryId",
+        "isUsing",
+        "isActive",
+        "createdAt",
+        "updatedAt",
+      ],
+      where: whereCondition,
+      order: [["createdAt", "DESC"]],
+      raw: true,
+    });
+
     return {
       httpCode: SUCCESS_CODE,
       result: {
         status: true,
         message: "SUCCESS",
-        data: { accountList, categoriesList, labelsList, partyList },
+        data: {
+          accountList,
+          categoriesList,
+          labelsList,
+          partyList,
+          subCategoriesList,
+        },
       },
     };
   } catch (error) {
