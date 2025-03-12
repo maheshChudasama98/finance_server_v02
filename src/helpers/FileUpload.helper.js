@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 
-const UserProfileUpload = async (payloadFile, uuid, oldFile) => {
+const UserProfileUpload = async (payloadFile, uuid, oldFile , ) => {
     try {
         const uploadDir = path.join(__dirname, '../../public/profiles', uuid);
 
@@ -88,7 +88,38 @@ const BranchLogoUpload = async (payloadFile, uuid, oldFile) => {
     }
 };
 
+
+const FileUpload = async (payloadFile, uuid, rootFolder, oldFile ) => {
+    try {
+        const uploadDir = path.join(__dirname, '../../public',rootFolder, uuid);        
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        if (fs.existsSync(path.join(uploadDir, oldFile))) {
+            fs.unlink(path.join(uploadDir, oldFile), (err) => { });
+        }
+        const fileExtension = path.extname(payloadFile.name);
+
+        const folderName = uuidv4();
+        const newFileName = `${folderName}${fileExtension}`;
+
+        const uploadPath = path.join(uploadDir, newFileName);
+        await payloadFile.mv(uploadPath, (err) => { });
+
+        if (fs.existsSync(path.join(uploadDir, oldFile))) {
+            fs.unlink(path.join(uploadDir, oldFile), (err) => { });
+        }
+
+        return newFileName
+
+    } catch (error) {
+        return false
+    }
+};
+
 module.exports = {
+    FileUpload,
     UserProfileUpload,
     BranchLogoUpload
 };

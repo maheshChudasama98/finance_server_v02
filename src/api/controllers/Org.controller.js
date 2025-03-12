@@ -4,9 +4,12 @@ const { v4: uuidv4 } = require('uuid');
 
 const db = require("../models/index");
 const { Op, Sequelize } = require("sequelize");
+const { FileUpload } = require("../../helpers/FileUpload.helper");
+const { OrgImagePath, BranchImagePath } = require("../constants/constants");
 const OrgModel = db.OrgModel;
 const ModulesModel = db.ModulesModel;
 const BranchesModel = db.BranchesModel;
+const RolesModel = db.RolesModel;
 
 const UserModel = db.UserModel;
 const OrgUsersModel = db.OrgUsersModel;
@@ -14,8 +17,8 @@ const PermissionModel = db.PermissionModel;
 
 // ------------------------ || Org Controllers || ------------------------ //
 
-exports.OrgModifyController = async (payloadUser, payloadBody) => {
-    try {
+exports.OrgModifyController = async (payloadUser, payloadBody, payloadFile) => {
+    try { 
         const { OrgId, OrgName, Description } = payloadBody;
 
         const orgTarget = await OrgModel.findOne({
@@ -31,12 +34,17 @@ exports.OrgModifyController = async (payloadUser, payloadBody) => {
                     result: { status: false, message: "DUPLICATE" }
                 });
             } else {
-
                 const uuid = uuidv4();
+                let imagePath = null;
+
+                if (payloadFile) {                    
+                    imagePath = await FileUpload(payloadFile?.ImgPath, uuid, OrgImagePath,);
+                };
 
                 await OrgModel.create({
                     OrgName: OrgName?.trim() || null,
                     Description: Description,
+                    ImgPath: imagePath,
                     UUID: uuid,
                     isDeleted: false,
                     isActive: true
@@ -59,9 +67,16 @@ exports.OrgModifyController = async (payloadUser, payloadBody) => {
 
             } else {
 
+                let imagePath = orgTarget?.ImgPath;
+
+                if (payloadFile) {                    
+                    imagePath = await FileUpload(payloadFile?.ImgPath, orgTarget?.UUID, OrgImagePath , orgTarget?.ImgPath);
+                };
+
                 await OrgModel.update({
                     OrgName: OrgName?.trim() || null,
                     Description: Description,
+                    ImgPath: imagePath,
                 }, { where: { OrgId: OrgId } });
 
                 return ({
@@ -115,9 +130,11 @@ exports.OrgListController = async (payloadUser, payloadBody) => {
                 "OrgId",
                 "OrgName",
                 "Description",
-                "ImgPath",
                 "isActive",
                 "createdAt",
+                [
+                    Sequelize.literal(`CONCAT('${OrgImagePath}','/', UUID, '/', ImgPath)`),"ImgPath"
+                ],
                 [
                     Sequelize.literal(`( SELECT COUNT(*) FROM branches WHERE branches.OrgId = orgs.OrgId  AND branches.isDeleted = false)`), 'TotalBranches'
                 ],
@@ -139,6 +156,7 @@ exports.OrgListController = async (payloadUser, payloadBody) => {
                                 'Email', branches.Email,
                                 'ImgPath', branches.ImgPath,
                                 'createdAt', branches.createdAt,
+                                'ImgPath', CONCAT('${BranchImagePath}','/', branches.UUID, '/', branches.ImgPath),
                                 'BranchUser', (SELECT COUNT(orgusers.BranchId)  FROM orgusers  WHERE orgusers.BranchId = branches.BranchId  AND orgusers.isDeleted = false)
                             )
                         )
@@ -274,9 +292,9 @@ exports.OrgActiveController = async (payloadUser, payloadQuery) => {
 
 // ------------------------ || Branches Controllers || ------------------------ //
 
-exports.BranchModifyController = async (payloadUser, payloadBody) => {
+exports.BranchModifyController = async (payloadUser, payloadBody ,payloadFile) => {
     try {
-        const { BranchId, BranchName, Description } = payloadBody;
+        const { BranchId, BranchName, Description, Address, City , State, GstNumber, Phone, Email} = payloadBody;
 
         const target = await BranchesModel.findOne({
             where: {
@@ -301,10 +319,23 @@ exports.BranchModifyController = async (payloadUser, payloadBody) => {
 
                 const uuid = uuidv4();
 
+                let imagePath = null;
+
+                if (payloadFile) {                    
+                    imagePath = await FileUpload(payloadFile?.ImgPath, uuid, BranchImagePath,);
+                };
+
                 await BranchesModel.create({
                     BranchName: BranchName?.trim() || null,
                     Description: Description,
                     OrgId: payloadUser?.OrgId,
+                    ImgPath: imagePath,
+                    Address,
+                    City, 
+                    State, 
+                    GstNumber,
+                    Phone,
+                    Email,
                     UUID: uuid,
                     isDeleted: false,
                     isActive: true
@@ -333,9 +364,22 @@ exports.BranchModifyController = async (payloadUser, payloadBody) => {
 
             } else {
 
+                let imagePath = target?.ImgPath;
+
+                if (payloadFile) {                    
+                    imagePath = await FileUpload(payloadFile?.ImgPath, target?.UUID, BranchImagePath, target?.ImgPath);
+                };
+                
                 await BranchesModel.update({
                     BranchName: BranchName?.trim() || null,
                     Description: Description,
+                    ImgPath: imagePath,
+                    Address,
+                    City, 
+                    State, 
+                    GstNumber,
+                    Phone,
+                    Email,
                 }, { where: { BranchId: BranchId } });
 
                 return ({
@@ -366,6 +410,9 @@ exports.BranchListController = async (payloadUser, payloadBody) => {
     try {
         const { Action, Page, PageSize, FilterBy } = payloadBody;
 
+        console.log(payloadUser?.RoleId , "payloadUser payloadUser");
+        
+
         if (Action) {
 
             if (!Page || !PageSize) {
@@ -393,6 +440,9 @@ exports.BranchListController = async (payloadUser, payloadBody) => {
         if (FilterBy?.Orgs && FilterBy?.Orgs?.length > 0) {
             whereCondition.OrgId = { [Op.in]: FilterBy?.Orgs };
         };
+        if (payloadUser?.RoleId !== 1) {
+            whereCondition.OrgId =  payloadUser?.OrgId ;
+        }
 
         const branchesList = await BranchesModel.findAll({
             attributes: [
@@ -405,10 +455,12 @@ exports.BranchListController = async (payloadUser, payloadBody) => {
                 "GstNumber",
                 "Phone",
                 "Email",
-                "ImgPath",
                 "isActive",
                 "createdAt",
                 "updatedAt",
+                [
+                    Sequelize.literal(`CONCAT('${BranchImagePath}','/', branches.UUID, '/', branches.ImgPath)`),"ImgPath"
+                ],
                 [Sequelize.col("org.OrgName"), 'OrgName'],
                 [Sequelize.literal(`(SELECT COUNT(orgusers.BranchId)  FROM orgusers  WHERE orgusers.BranchId = branches.BranchId  AND orgusers.isDeleted = false)`), 'TotalUser'],
                 [Sequelize.literal(`(
@@ -420,7 +472,8 @@ exports.BranchListController = async (payloadUser, payloadBody) => {
                             'LastName', users.LastName,
                             'AvatarName', users.AvatarName,
                             'ImgPath', users.ImgPath,
-                            'Email', users.Email
+                            'Email', users.Email,
+                            'createdAt', users.createdAt
                         )
                     )
                     FROM orgusers JOIN users ON users.UserId = orgusers.UserId WHERE orgusers.BranchId = branches.BranchId  AND orgusers.isDeleted = false
@@ -555,9 +608,9 @@ exports.BranchActiveController = async (payloadUser, payloadQuery) => {
 
 exports.ModuleModifyController = async (payloadUser, payloadBody) => {
     try {
-        const { ModulesId, ModulesName, Description } = payloadBody;
+        const { ModulesId, ModulesName, Description, ParentNoteId } = payloadBody;
 
-        const target = await BranchesModel.findOne({
+        const target = await ModulesModel.findOne({
             where: {
                 ModulesName: ModulesName,
                 OrgId: payloadUser?.OrgId,
@@ -578,13 +631,12 @@ exports.ModuleModifyController = async (payloadUser, payloadBody) => {
                 });
             } else {
 
-                const uuid = uuidv4();
-
-                await BranchesModel.create({
+                await ModulesModel.create({
                     ModulesName: ModulesName?.trim() || null,
                     Description: Description,
+                    ParentNoteId: ParentNoteId || null,
                     OrgId: payloadUser?.OrgId,
-                    UUID: uuid,
+                    BranchId: payloadUser?.BranchId,
                     isDeleted: false,
                     isActive: true
                 });
@@ -612,9 +664,10 @@ exports.ModuleModifyController = async (payloadUser, payloadBody) => {
 
             } else {
 
-                await BranchesModel.update({
+                await ModulesModel.update({
                     ModulesName: ModulesName?.trim() || null,
                     Description: Description,
+                    ParentNoteId: ParentNoteId || null,
                 }, { where: { ModulesId: ModulesId } });
 
                 return ({
@@ -672,7 +725,7 @@ exports.ModuleListController = async (payloadUser, payloadBody) => {
             whereCondition.isActive = { [Op.eq]: FilterBy?.IsActive, };
         };
 
-        const branchesList = await ModulesModel.findAll({
+        const list = await ModulesModel.findAll({
             attributes: ["ModulesId", "ModulesName", "Description", "isDeleted", "isActive", "createdAt", "updatedAt"],
             where: whereCondition,
             limit: limit,
@@ -696,7 +749,7 @@ exports.ModuleListController = async (payloadUser, payloadBody) => {
                     status: true,
                     message: "SUCCESS",
                     data: {
-                        list: branchesList,
+                        list: list,
                         totalRecords: totalCount,
                         totalPages: totalPage,
                         currentPage: parseInt(Page)
@@ -711,7 +764,7 @@ exports.ModuleListController = async (payloadUser, payloadBody) => {
                 result: {
                     status: true,
                     message: "SUCCESS",
-                    data: { list: branchesList }
+                    data: { list: list }
                 }
             });
 
@@ -799,20 +852,20 @@ exports.ModuleActiveController = async (payloadUser, payloadQuery) => {
 
 exports.RoleModifyController = async (payloadUser, payloadBody) => {
     try {
-        const { BranchId, BranchName, Description } = payloadBody;
+        const { RoleId, RoleName, Description } = payloadBody;
 
-        const target = await BranchesModel.findOne({
+        const target = await RolesModel.findOne({
             where: {
-                BranchName: BranchName,
+                RoleName: RoleName,
                 OrgId: payloadUser?.OrgId,
                 isDeleted: false
             },
             raw: true
         });
 
-        if (!BranchId) {
+        if (!RoleId) {
 
-            if (target?.BranchId) {
+            if (target?.RoleId) {
                 return ({
                     httpCode: SUCCESS_CODE,
                     result: {
@@ -822,13 +875,11 @@ exports.RoleModifyController = async (payloadUser, payloadBody) => {
                 });
             } else {
 
-                const uuid = uuidv4();
-
-                await BranchesModel.create({
-                    BranchName: BranchName?.trim() || null,
+                await RolesModel.create({
+                    RoleName: RoleName?.trim() || null,
                     Description: Description,
                     OrgId: payloadUser?.OrgId,
-                    UUID: uuid,
+                    BranchId: payloadUser?.BranchId,
                     isDeleted: false,
                     isActive: true
                 });
@@ -844,7 +895,7 @@ exports.RoleModifyController = async (payloadUser, payloadBody) => {
 
         } else {
 
-            if (target?.BranchId && target?.BranchId != BranchId) {
+            if (target?.RoleId && target?.RoleId != RoleId) {
 
                 return ({
                     httpCode: SUCCESS_CODE,
@@ -856,10 +907,10 @@ exports.RoleModifyController = async (payloadUser, payloadBody) => {
 
             } else {
 
-                await BranchesModel.update({
-                    BranchName: BranchName?.trim() || null,
+                await RolesModel.update({
+                    RoleName: RoleName?.trim() || null,
                     Description: Description,
-                }, { where: { BranchId: BranchId } });
+                }, { where: { RoleId: RoleId } });
 
                 return ({
                     httpCode: SUCCESS_CODE,
@@ -903,10 +954,10 @@ exports.RoleListController = async (payloadUser, payloadBody) => {
             var { limit, offset } = getPagination(Page, PageSize);
         };
 
-        const whereCondition = { isDeleted: false };
+        const whereCondition = { isDeleted: false, OrgId : payloadUser?.OrgId};
 
-        if (FilterBy?.BranchName) {
-            whereCondition.BranchName = { [Op.like]: "%" + FilterBy?.BranchName + "%", };
+        if (FilterBy?.RoleName) {
+            whereCondition.RoleName = { [Op.like]: "%" + FilterBy?.RoleName + "%", };
         };
 
         if (FilterBy?.IsActive == true || FilterBy?.IsActive == false) {
@@ -917,42 +968,19 @@ exports.RoleListController = async (payloadUser, payloadBody) => {
             whereCondition.OrgId = { [Op.in]: FilterBy?.Orgs };
         };
 
-        const branchesList = await BranchesModel.findAll({
+        if (payloadUser?.OrgId !==1 ) {
+            whereCondition.RoleId = { [Op.not]: 1 };
+        };
+
+        const list = await RolesModel.findAll({
             attributes: [
-                "BranchId",
-                "BranchName",
+                "RoleId",
+                "RoleName",
                 "Description",
-                "Address",
-                "City",
-                "State",
-                "GstNumber",
-                "Phone",
-                "Email",
-                "ImgPath",
                 "isActive",
                 "createdAt",
                 "updatedAt",
-                [Sequelize.col("org.OrgName"), 'OrgName'],
-                [Sequelize.literal(`(SELECT COUNT(orgusers.BranchId)  FROM orgusers  WHERE orgusers.BranchId = branches.BranchId  AND orgusers.isDeleted = false)`), 'TotalUser'],
-                [Sequelize.literal(`(
-                    SELECT JSON_ARRAYAGG(
-                        JSON_OBJECT(
-                            'UserId', users.UserId,
-                            'FullName', CONCAT(users.FirstName, ' ', users.LastName),
-                            'FirstName', users.FirstName,
-                            'LastName', users.LastName,
-                            'AvatarName', users.AvatarName,
-                            'ImgPath', users.ImgPath,
-                            'Email', users.Email
-                        )
-                    )
-                    FROM orgusers JOIN users ON users.UserId = orgusers.UserId WHERE orgusers.BranchId = branches.BranchId  AND orgusers.isDeleted = false
-                )`), 'UserList'],
             ],
-            include: [{
-                model: OrgModel,
-                attributes: []
-            }],
             where: whereCondition,
             limit: limit,
             offset: offset,
@@ -975,7 +1003,7 @@ exports.RoleListController = async (payloadUser, payloadBody) => {
                     status: true,
                     message: "SUCCESS",
                     data: {
-                        list: branchesList,
+                        list: list,
                         totalRecords: totalCount,
                         totalPages: totalPage,
                         currentPage: parseInt(Page)
@@ -990,7 +1018,7 @@ exports.RoleListController = async (payloadUser, payloadBody) => {
                 result: {
                     status: true,
                     message: "SUCCESS",
-                    data: { list: branchesList }
+                    data: { list: list }
                 }
             });
 
@@ -1012,12 +1040,12 @@ exports.RoleListController = async (payloadUser, payloadBody) => {
 exports.RoleRemoveController = async (payloadUser, payloadQuery) => {
     try {
 
-        const { BranchId } = payloadQuery;
+        const { RoleId } = payloadQuery;
 
-        await BranchesModel.update({
+        await RolesModel.update({
             isDeleted: true
         }, {
-            where: { BranchId: BranchId }
+            where: { RoleId: RoleId }
         });
 
         return ({
@@ -1043,15 +1071,15 @@ exports.RoleRemoveController = async (payloadUser, payloadQuery) => {
 
 exports.RoleActiveController = async (payloadUser, payloadQuery) => {
     try {
-        const { BranchId } = payloadQuery;
+        const { RoleId } = payloadQuery;
 
-        const target = await BranchesModel.findOne({
+        const target = await RolesModel.findOne({
             attributes: ["isActive"],
-            where: { BranchId: BranchId },
+            where: { RoleId: RoleId },
             raw: true
         });
 
-        await BranchesModel.update({ isActive: !target?.isActive }, { where: { BranchId: BranchId } });
+        await RolesModel.update({ isActive: !target?.isActive }, { where: { RoleId: RoleId } });
 
         return ({
             httpCode: SUCCESS_CODE,

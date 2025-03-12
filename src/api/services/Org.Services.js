@@ -8,7 +8,7 @@ const { SERVER_ERROR_CODE } = require("../constants/statusCode");
 
 exports.OrgModifyService = async (req, res) => {
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
-    const { httpCode, result } = await Controller.OrgModifyController(req?.user, body);
+    const { httpCode, result } = await Controller.OrgModifyController(req?.user, body ,req.files);
 
     return res.status(httpCode).send({
         status: result?.status,
@@ -53,7 +53,7 @@ exports.OrgActiveService = async (req, res) => {
 
 exports.BranchModifyService = async (req, res) => {
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
-    const { httpCode, result } = await Controller.BranchModifyController(req?.user, body);
+    const { httpCode, result } = await Controller.BranchModifyController(req?.user, body ,req.files);
 
     return res.status(httpCode).send({
         status: result?.status,
