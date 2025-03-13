@@ -28,6 +28,8 @@ module.exports = (app) => {
     app.post("/api/role/list", TokenMiddleware, Service.RoleListService);
     app.delete("/api/role/remove", TokenMiddleware, Service.RoleRemoveService);
     app.get("/api/role/active", TokenMiddleware, Service.RoleActiveService);
+    app.get("/api/permission/list", TokenMiddleware, Service.PermissionListService);
+    app.post("/api/permission/modify", TokenMiddleware, Service.PermissionModifyService);
 
     // ------------ || Base on project  || ------------ //
     

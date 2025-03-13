@@ -183,3 +183,28 @@ exports.RoleActiveService = async (req, res) => {
         data: DevelopMood ? result?.data : encrypt(result?.data)
     });
 };
+
+
+
+exports.PermissionListService = async (req, res) => {
+    const { httpCode, result } = await Controller.PermissionController(req?.user, req?.query);
+
+    return res.status(httpCode).send({
+        status: result?.status,
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+        data: DevelopMood ? result?.data : encrypt(result?.data)
+    });
+};
+
+
+exports.PermissionModifyService = async (req, res) => {
+
+    const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+    const { httpCode, result } = await Controller.PermissionModifyController(req?.user, body);
+
+    return res.status(httpCode).send({
+        status: result?.status,
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+        data: DevelopMood ? result?.data : encrypt(result?.data)
+    });
+};

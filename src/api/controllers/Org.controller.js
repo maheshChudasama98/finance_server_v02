@@ -3,16 +3,13 @@ const { getPagination } = require("../../helpers/Actions.helper");
 const { v4: uuidv4 } = require('uuid');
 
 const db = require("../models/index");
-const { Op, Sequelize } = require("sequelize");
+const { Op, Sequelize, where } = require("sequelize");
 const { FileUpload } = require("../../helpers/FileUpload.helper");
 const { OrgImagePath, BranchImagePath } = require("../constants/constants");
 const OrgModel = db.OrgModel;
 const ModulesModel = db.ModulesModel;
 const BranchesModel = db.BranchesModel;
 const RolesModel = db.RolesModel;
-
-const UserModel = db.UserModel;
-const OrgUsersModel = db.OrgUsersModel;
 const PermissionModel = db.PermissionModel;
 
 // ------------------------ || Org Controllers || ------------------------ //
@@ -613,8 +610,8 @@ exports.ModuleModifyController = async (payloadUser, payloadBody) => {
         const target = await ModulesModel.findOne({
             where: {
                 ModulesName: ModulesName,
-                OrgId: payloadUser?.OrgId,
-                isDeleted: false
+                // OrgId: payloadUser?.OrgId,
+                // isDeleted: false
             },
             raw: true
         });
@@ -631,7 +628,7 @@ exports.ModuleModifyController = async (payloadUser, payloadBody) => {
                 });
             } else {
 
-                await ModulesModel.create({
+               const created =  await ModulesModel.create({
                     ModulesName: ModulesName?.trim() || null,
                     Description: Description,
                     ParentNoteId: ParentNoteId || null,
@@ -640,6 +637,25 @@ exports.ModuleModifyController = async (payloadUser, payloadBody) => {
                     isDeleted: false,
                     isActive: true
                 });
+
+                const roleList=  await RolesModel.findAll({
+                    where :{
+                     isDeleted: false,
+                     OrgId: payloadUser?.OrgId,
+                    },
+                    raw :true
+                 });
+                 
+                const bulkData = await roleList.map((item)=>(
+                    {
+                        ModuleId :created?.ModulesId,
+                        RoleId : item?.RoleId,
+                        CanRead : true,
+                        CanWrite :true
+                    }
+                ));
+                
+                await PermissionModel.bulkCreate(bulkData); 
 
                 return ({
                     httpCode: SUCCESS_CODE,
@@ -726,7 +742,7 @@ exports.ModuleListController = async (payloadUser, payloadBody) => {
         };
 
         const list = await ModulesModel.findAll({
-            attributes: ["ModulesId", "ModulesName", "Description", "isDeleted", "isActive", "createdAt", "updatedAt"],
+            attributes: ["ModulesId", "ModulesName", "Description", "ParentNoteId", "isDeleted", "isActive", "createdAt", "updatedAt"],
             where: whereCondition,
             limit: limit,
             offset: offset,
@@ -875,7 +891,7 @@ exports.RoleModifyController = async (payloadUser, payloadBody) => {
                 });
             } else {
 
-                await RolesModel.create({
+               const roleCreated=  await RolesModel.create({
                     RoleName: RoleName?.trim() || null,
                     Description: Description,
                     OrgId: payloadUser?.OrgId,
@@ -883,6 +899,25 @@ exports.RoleModifyController = async (payloadUser, payloadBody) => {
                     isDeleted: false,
                     isActive: true
                 });
+
+                const moduleList=  await ModulesModel.findAll({
+                   where :{
+                    isDeleted: false,
+                    OrgId: payloadUser?.OrgId,
+                   },
+                   raw :true
+                });
+                
+                const bulkData = await moduleList.map((item)=>(
+                    {
+                        ModuleId :item?.ModulesId,
+                        RoleId :roleCreated?.RoleId,
+                        CanRead : true,
+                        CanWrite :true
+                    }
+                ));
+                                
+                await PermissionModel.bulkCreate(bulkData);                
 
                 return ({
                     httpCode: SUCCESS_CODE,
@@ -1099,5 +1134,171 @@ exports.RoleActiveController = async (payloadUser, payloadQuery) => {
             }
         });
     };
+
+};
+
+exports.PermissionController = async(payloadUser , payloadQuery) => {
+    try {
+        const { RoleId } = payloadQuery;
+
+        if (!RoleId) {
+            return {
+                httpCode: BAD_REQUEST_CODE,
+                result: {
+                  status: false,
+                  message: "BAD_REQUEST_CODE",
+                },
+              };
+        };
+
+        async function fetchModulesWithChildren(parentId = null) {
+            try {
+                const modules = await ModulesModel.findAll({
+                    attributes: ['ModulesId', 'ModulesName', 'Description',
+                        [Sequelize.col('permissions.PermissionId'), 'PermissionId'],
+                        [Sequelize.col('permissions.CanRead'), 'CanRead'],
+                        [Sequelize.col('permissions.CanWrite'), 'CanWrite']
+                    ],
+                    where: parentId ? { ParentNoteId: parentId , isDeleted :false } : { ParentNoteId: null , isDeleted :false },
+                    include: [{
+                        attributes: [],
+                        model: PermissionModel,
+                        where: { RoleId: RoleId }
+                    }],
+                    raw:true
+                });
+
+                if (!modules.length) return [];
+
+                for (let module of modules) {
+                    const children = await fetchModulesWithChildren(module.ModulesId);                    
+                    module.children = children;
+                }
+                return modules;
+
+            } catch (error) {
+                throw new Error(error.message);
+            }
+
+        }
+
+        const getRoleAccessNested = await fetchModulesWithChildren()
+
+        
+        
+
+        const moduleList = await PermissionModel.findAll({
+            attributes: [
+                'PermissionId', 'ModuleId', 'RoleId', 'CanRead', 'CanWrite',
+                [Sequelize.col('module.ModulesName'), 'ModulesName'],
+                [Sequelize.col('module.Description'), 'Description'],
+                [Sequelize.col('module.Router'), 'Router'],
+                [Sequelize.col('module.isActive'), 'isActive'],
+                [Sequelize.col('module.createdAt'), 'moduleCreatedAt'],
+
+                [Sequelize.col('role.RoleName'), 'RoleName'],
+                [Sequelize.col('role.Description'), 'roleDescription'],
+                [Sequelize.col('role.createdAt'), 'roleCreatedAt'],
+            ],
+            where: {
+                RoleId: RoleId
+            },
+            include: [
+                {
+                    model: ModulesModel,
+                    attributes: []
+                },
+                {
+                    model: RolesModel,
+                    where: {
+                        OrgId: payloadUser?.OrgId
+                    },
+                    attributes: []
+                }
+            ],
+            raw: true
+        });
+
+        return ({
+            httpCode: SUCCESS_CODE,
+            result: {
+                status: true,
+                message: "SUCCESS",
+                data: {
+                    nested: getRoleAccessNested,
+                    moduleList: moduleList
+                }
+            }
+        });
+
+    } catch (error) {
+        console.log(`\x1b[91m ${error} \x1b[91m`);
+        return ({
+            httpCode: SERVER_ERROR_CODE,
+            result: {
+                status: false,
+                message: error.message
+            }
+        });
+    }
+
+};
+
+exports.PermissionModifyController = async(payloadUser, payloadBody,) => {
+    try {
+        const { ModifyArray } = payloadBody;
+
+        if (ModifyArray?.length <= 0) {
+            return {
+                httpCode: BAD_REQUEST_CODE,
+                result: {
+                  status: false,
+                  message: "BAD_REQUEST_CODE",
+                },
+              };
+        };
+
+        for (let index = 0; index < ModifyArray?.length; index++) {
+
+            const element = ModifyArray[index];
+
+            const roleCheck = await PermissionModel.findOne({
+                where: {
+                    PermissionId: element?.PermissionId
+                },
+                raw: true
+            });
+
+            if (roleCheck?.CanRead !== element?.CanRead || roleCheck?.CanWrite !== element?.CanWrite) {
+
+                await PermissionModel.update({
+                    CanRead: element?.CanRead,
+                    CanWrite: element?.CanWrite,
+                }, {
+                    where: { PermissionId: element?.PermissionId }
+                });
+            };
+
+        };
+
+
+        return ({
+            httpCode: SUCCESS_CODE,
+            result: {
+                status: true,
+                message: "SUCCESS",
+            }
+        });
+
+    } catch (error) {
+        console.log(`\x1b[91m ${error} \x1b[91m`);
+        return ({
+            httpCode: SERVER_ERROR_CODE,
+            result: {
+                status: false,
+                message: error.message
+            }
+        });
+    }
 
 };
