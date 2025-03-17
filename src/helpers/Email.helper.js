@@ -1,5 +1,6 @@
 require('dotenv').config();
 const nodemailer = require("nodemailer");
+const { ProjectName } = require('../api/constants/constants');
 
 const logo = `
 <div style="float:right;padding:8px 0;color:#aaa;font-size:0.8em;line-height:1;font-weight:300">
@@ -258,17 +259,18 @@ const emailForgetPasswordSendOTP = async (details) => {
 const emailFormat = async (details) => {
     try {
         const emailMessage = {
-            from: 'Kuvadva Transformer',
-            to: `${details.to}`,
+            from: `${ProjectName} <${process.env.EMAIL_USER}>`,
+            to: `${details?.to}`,
             subject: details?.subject,
             html: `
-            <div style="background-color: #fff; margin-ton: 10px ; width : 100%;" >
-            <div style="max-width:600px ; margin:0 auto; border-color:#e5e5e5; border-style :solid ; border-width :0 1px 1px 1px;">
-            <div style="background-color: #03a3ff ;font-size:1px;height:3px"> </div>
-            <div style="margin:50px 20px 50px 20px">
-                ${details.description}
-            </div>
-            </div>
+            <div style="background-color: #fff; margin-ton: 10px ; width : 100%; border-radius: 8px;" >
+                <div style="max-width:600px ; margin:0 auto; border-color:#e5e5e5; border-style :solid ; border-width :0 1px 1px 1px;">
+                    <div style="background-color: #4CAF50 ;font-size:1px;height:3px"> </div>
+                        <div style="margin:50px 20px 50px 20px">
+                            ${details?.description}
+                        </div>
+                    </div>
+                </div>
             </div>
             `
         };

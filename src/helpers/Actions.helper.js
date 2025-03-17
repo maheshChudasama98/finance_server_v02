@@ -1,3 +1,5 @@
+const { PasswordRegex } = require("../api/constants/constants");
+
 const moment = require("moment");
 
 //  This is calculate duration  
@@ -79,8 +81,31 @@ const getPagination = (page, size) => {
     return { limit: pageSize, offset: offset };
 }
 
+const generatePassword = (length = 12) => {
+  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  const lower = 'abcdefghijklmnopqrstuvwxyz';
+  const numbers = '0123456789';
+  const special = '#?@$%&';
+  
+  let password = 
+    upper[Math.floor(Math.random() * upper.length)] +
+    lower[Math.floor(Math.random() * lower.length)] +
+    numbers[Math.floor(Math.random() * numbers.length)] +
+    special[Math.floor(Math.random() * special.length)];
+
+  const allChars = upper + lower + numbers + special;
+  for (let i = password.length; i < length; i++) {
+    password += allChars[Math.floor(Math.random() * allChars.length)];
+  }
+
+  password = password.split('').sort(() => 0.5 - Math.random()).join('');
+
+  return PasswordRegex.test(password) ? password : generatePassword(length);
+};
+
 
 module.exports = {
     durationFindFun,
-    getPagination
+    getPagination,
+    generatePassword
 }

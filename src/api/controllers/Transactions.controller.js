@@ -1,17 +1,9 @@
-const {
-  SUCCESS_CODE,
-  BAD_REQUEST_CODE,
-  SERVER_ERROR_CODE,
-} = require("../constants/statusCode");
-const { v4: uuidv4 } = require("uuid");
-const { Op, Sequelize, where } = require("sequelize");
+const { Op, Sequelize,  } = require("sequelize");
+const { SUCCESS_CODE, BAD_REQUEST_CODE, SERVER_ERROR_CODE } = require("../constants/statusCode");
 
 const db = require("../models/index");
 
-const {
-  getPagination,
-  durationFindFun,
-} = require("../../helpers/Actions.helper");
+const { getPagination, durationFindFun} = require("../../helpers/Actions.helper");
 
 const PartiesModel = db.PartiesModel;
 const AccountsModel = db.AccountsModel;

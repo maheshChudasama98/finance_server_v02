@@ -1,38 +1,49 @@
 const { encrypt, decrypt } = require("../../helpers/Crypto");
 const { DevelopMood } = require("../constants/constants");
 const { getMessage } = require("../../helpers/messageLangSelector");
-const UserController = require("../controllers/User.controller");
+const Controller = require("../controllers/User.controller");
+const { SERVER_ERROR_CODE } = require("../constants/statusCode");
+
+
 
 exports.UserInfoService = async (req, res) => {
 
-    const { httpCode, result } = await UserController.UserInfoController(req?.user);
+    const { httpCode, result } = await Controller.UserInfoController(req?.user);
 
     return res.status(httpCode).send({
         status: result?.status,
-        message: httpCode == 501 ? result?.message : getMessage(req.user.Language, result?.message),
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
         data: DevelopMood ? result?.data : encrypt(result?.data)
     })
 };
-
-exports.FetchUserListService = async (req, res) => {
-
-    const { httpCode, result } = await UserController.FetchUserListController(req.user);
+exports.UserListService = async (req, res) => {
+    const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+    const { httpCode, result } = await Controller.UserListController(req?.user, body);
 
     return res.status(httpCode).send({
         status: result?.status,
-        message: httpCode == 501 ? result?.message : getMessage(req.user.Language, result?.message),
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
         data: DevelopMood ? result?.data : encrypt(result?.data)
-    })
+    });
 };
 
 exports.UserModifyService = async (req, res) => {
-
-    const { httpCode, result } = await UserController.UserModifyController(req.user, req.body, req.files);
+    const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+    const { httpCode, result } = await Controller.UserModifyController(req?.user, body ,req.files);
 
     return res.status(httpCode).send({
         status: result?.status,
-        // message: result?.message,
-        message: httpCode == 501 ? result?.message : getMessage(req.user.Language, result?.message),
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
         data: DevelopMood ? result?.data : encrypt(result?.data)
-    })
+    });
+};
+
+exports.UserRemoveService = async (req, res) => {
+    const { httpCode, result } = await Controller.UserRemoveController(req?.user, req?.query);
+
+    return res.status(httpCode).send({
+        status: result?.status,
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+        data: DevelopMood ? result?.data : encrypt(result?.data)
+    });
 };

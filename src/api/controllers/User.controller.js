@@ -1,300 +1,570 @@
-const { Op, Sequelize } = require("sequelize")
-const { SuperAdminID, JuniorEngineerID, } = require("../constants/constants");
-const { SUCCESS_CODE, SERVER_ERROR_CODE, BAD_REQUEST_CODE } = require("../constants/statusCode");
-const bcrypt = require('bcrypt');
-const { v4: uuidv4 } = require('uuid');
+const { Op, Sequelize, where, UUID } = require("sequelize");
+const {
+  SUCCESS_CODE,
+  SERVER_ERROR_CODE,
+  BAD_REQUEST_CODE,
+} = require("../constants/statusCode");
+const bcrypt = require("bcrypt");
+const { v4: uuidv4 } = require("uuid");
+
+const {
+  getPagination,
+  durationFindFun,
+  generatePassword,
+} = require("../../helpers/Actions.helper");
 
 const db = require("../models/index");
+const { FileUpload } = require("../../helpers/FileUpload.helper");
+const {
+  UserProfileImagePath,
+  ProjectName,
+  resetLink,
+  superAdminRoleId,
+} = require("../constants/constants");
+const { emailFormat } = require("../../helpers/Email.helper");
 const UserModel = db.UserModel;
 const OrgUsersModel = db.OrgUsersModel;
 const ModulesModel = db.ModulesModel;
 const PermissionModel = db.PermissionModel;
 
-// ------------ ||  || ------------ //
-
 exports.UserInfoController = async (payloadUser) => {
-    try {
-        const { UserId } = payloadUser;
+  try {
+    const { UserId } = payloadUser;
 
-        const UserDetails = await OrgUsersModel.findOne({
-            attributes: [
-                "OrgUserId",
-                "OrgId",
-                "BranchId",
-                "UserId",
-                "RoleId",
-                "DefaultOrg",
-                [
-                    Sequelize.literal(`(
-                        SELECT JSON_ARRAYAGG(
-                            JSON_OBJECT(
-                                'OrgId', orgs.OrgId,
-                                'OrgName', orgs.OrgName,
-                                'Description', orgs.Description,
-                                'UUID', orgs.UUID,
-                                'ImgPath', orgs.ImgPath,
-                                'createdAt', orgs.createdAt
-                            )
-                        )
-                        FROM orgs
-                        WHERE 
-                        orgs.isDeleted = false AND orgs.isActive = true
-                        AND orgs.OrgId IN ( SELECT OrgId FROM orgusers WHERE orgusers.UserId = ${UserId} )
-                    )`),
-                    "OrgsList"
-                ],
-                [
-                    Sequelize.literal(`(
-                        SELECT 
-                            JSON_OBJECT(
-                                'OrgId', orgs.OrgId,
-                                'OrgName', orgs.OrgName,
-                                'Description', orgs.Description,
-                                'UUID', orgs.UUID,
-                                'ImgPath', orgs.ImgPath,
-                                'createdAt', orgs.createdAt
-                        )
-                        FROM orgs
-                        WHERE  orgs.isDeleted = false AND orgs.isActive = true
-                        AND orgs.OrgId = ( 
-                            SELECT OrgId 
-                            FROM orgusers 
-                            WHERE orgusers.UserId = ${UserId} 
-                            AND orgusers.DefaultOrg = true 
-                            LIMIT 1
-                        )
-                    )`),
-                    "SelectOrg"
-                ],
-                [
-                    Sequelize.literal(`(
-                        SELECT JSON_ARRAYAGG(
-                            JSON_OBJECT(
-                                'BranchId', branches.BranchId,
-                                'BranchName', branches.BranchName,
-                                'Description', branches.Description,
-                                'UUID', branches.UUID,
-                                'Address', branches.Address,
-                                'City', branches.City,
-                                'GstNumber', branches.GstNumber,
-                                'Phone', branches.Phone,
-                                'Email', branches.Email,
-                                'ImgPath', branches.ImgPath,
-                                'createdAt', branches.createdAt
-                            )
-                        )
-                        FROM branches
-                        WHERE branches.BranchId IN (
-                                SELECT BranchId 
-                                FROM orgusers 
-                                WHERE orgusers.UserId = ${UserId} 
-                                AND orgusers.OrgId = orgusers.OrgId
-                            )
-                    )`),
-                    "BranchesList"
-                ],
-                [
-                    Sequelize.literal(`(
-                        SELECT JSON_ARRAYAGG(
-                            JSON_OBJECT(
-                                'BranchId', branches.BranchId,
-                                'BranchName', branches.BranchName,
-                                'Description', branches.Description,
-                                'UUID', branches.UUID,
-                                'Address', branches.Address,
-                                'City', branches.City,
-                                'GstNumber', branches.GstNumber,
-                                'Phone', branches.Phone,
-                                'Email', branches.Email,
-                                'ImgPath', branches.ImgPath,
-                                'createdAt', branches.createdAt
-                            )
-                        )
-                        FROM branches
-                        WHERE branches.BranchId = (
-                                SELECT BranchId 
-                                FROM orgusers 
-                                WHERE orgusers.UserId = ${UserId} 
-                                AND orgusers.OrgId = orgusers.OrgId
-                                AND orgusers.DefaultOrg = true 
-                                LIMIT 1
-                            )
-                    )`),
-                    "SelectBranch"
-                ],
-            ],
-            where: {
-                UserId: UserId,
-                DefaultOrg: true
-            },
-            raw: true
-        });
+    const UserDetails = await OrgUsersModel.findOne({
+      attributes: [
+        "OrgUserId",
+        "OrgId",
+        "BranchId",
+        "UserId",
+        "RoleId",
+        "DefaultOrg",
+        [
+          Sequelize.literal(`(
+                      SELECT JSON_ARRAYAGG(
+                          JSON_OBJECT(
+                              'OrgId', orgs.OrgId,
+                              'OrgName', orgs.OrgName,
+                              'Description', orgs.Description,
+                              'UUID', orgs.UUID,
+                              'ImgPath', orgs.ImgPath,
+                              'createdAt', orgs.createdAt
+                          )
+                      )
+                      FROM orgs
+                      WHERE 
+                      orgs.isDeleted = false AND orgs.isActive = true
+                      AND orgs.OrgId IN ( SELECT OrgId FROM orgusers WHERE orgusers.UserId = ${UserId} )
+                  )`),
+          "OrgsList",
+        ],
+        [
+          Sequelize.literal(`(
+                      SELECT 
+                          JSON_OBJECT(
+                              'OrgId', orgs.OrgId,
+                              'OrgName', orgs.OrgName,
+                              'Description', orgs.Description,
+                              'UUID', orgs.UUID,
+                              'ImgPath', orgs.ImgPath,
+                              'createdAt', orgs.createdAt
+                      )
+                      FROM orgs
+                      WHERE  orgs.isDeleted = false AND orgs.isActive = true
+                      AND orgs.OrgId = ( 
+                          SELECT OrgId 
+                          FROM orgusers 
+                          WHERE orgusers.UserId = ${UserId} 
+                          AND orgusers.DefaultOrg = true 
+                          LIMIT 1
+                      )
+                  )`),
+          "SelectOrg",
+        ],
+        [
+          Sequelize.literal(`(
+                      SELECT JSON_ARRAYAGG(
+                          JSON_OBJECT(
+                              'BranchId', branches.BranchId,
+                              'BranchName', branches.BranchName,
+                              'Description', branches.Description,
+                              'UUID', branches.UUID,
+                              'Address', branches.Address,
+                              'City', branches.City,
+                              'GstNumber', branches.GstNumber,
+                              'Phone', branches.Phone,
+                              'Email', branches.Email,
+                              'ImgPath', branches.ImgPath,
+                              'createdAt', branches.createdAt
+                          )
+                      )
+                      FROM branches
+                      WHERE branches.BranchId IN (
+                              SELECT BranchId 
+                              FROM orgusers 
+                              WHERE orgusers.UserId = ${UserId} 
+                              AND orgusers.OrgId = orgusers.OrgId
+                          )
+                  )`),
+          "BranchesList",
+        ],
+        [
+          Sequelize.literal(`(
+                      SELECT JSON_ARRAYAGG(
+                          JSON_OBJECT(
+                              'BranchId', branches.BranchId,
+                              'BranchName', branches.BranchName,
+                              'Description', branches.Description,
+                              'UUID', branches.UUID,
+                              'Address', branches.Address,
+                              'City', branches.City,
+                              'GstNumber', branches.GstNumber,
+                              'Phone', branches.Phone,
+                              'Email', branches.Email,
+                              'ImgPath', branches.ImgPath,
+                              'createdAt', branches.createdAt
+                          )
+                      )
+                      FROM branches
+                      WHERE branches.BranchId = (
+                              SELECT BranchId 
+                              FROM orgusers 
+                              WHERE orgusers.UserId = ${UserId} 
+                              AND orgusers.OrgId = orgusers.OrgId
+                              AND orgusers.DefaultOrg = true 
+                              LIMIT 1
+                          )
+                  )`),
+          "SelectBranch",
+        ],
+      ],
+      where: {
+        UserId: UserId,
+        DefaultOrg: true,
+      },
+      raw: true,
+    });
 
-        const PermissionList = await PermissionModel.findAll({
-            attributes: [
-                "PermissionId",
-                "ModuleId",
-                "RoleId",
-                "CanRead",
-                "CanWrite",
-                [Sequelize.col("module.ModulesName"), 'ModulesName'],
-            ],
-            where: { RoleId: UserDetails?.RoleId },
-            include: [
-                {
-                    model: ModulesModel,
-                    attributes: []
-                }
-            ],
-            raw: true
-        });
+    const PermissionList = await PermissionModel.findAll({
+      attributes: [
+        "PermissionId",
+        "ModuleId",
+        "RoleId",
+        "CanRead",
+        "CanWrite",
+        [Sequelize.col("module.ModulesName"), "ModulesName"],
+      ],
+      where: { RoleId: UserDetails?.RoleId },
+      include: [
+        {
+          model: ModulesModel,
+          attributes: [],
+        },
+      ],
+      raw: true,
+    });
 
-        return ({
-            httpCode: SUCCESS_CODE,
-            result: {
-                status: true,
-                message: "SUCCESS",
-                data: {
-                    Branch: {
-                        BranchesList: UserDetails?.BranchesList,
-                        SelectBranch: UserDetails?.SelectBranch,
-                    },
-                    Org: {
-                        OrgsList: UserDetails?.OrgsList,
-                        SelectOrg: UserDetails?.SelectOrg,
-                    },
-                    PermissionList,
-                }
-            }
-        });
-
-    } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
-        return ({
-            httpCode: SERVER_ERROR_CODE,
-            result: { status: false, message: error.message }
-        });
+    return {
+      httpCode: SUCCESS_CODE,
+      result: {
+        status: true,
+        message: "SUCCESS",
+        data: {
+          Branch: {
+            BranchesList: UserDetails?.BranchesList,
+            SelectBranch: UserDetails?.SelectBranch,
+          },
+          Org: {
+            OrgsList: UserDetails?.OrgsList,
+            SelectOrg: UserDetails?.SelectOrg,
+          },
+          PermissionList,
+        },
+      },
     };
-
+  } catch (error) {
+    console.log(`\x1b[91m ${error} \x1b[91m`);
+    return {
+      httpCode: SERVER_ERROR_CODE,
+      result: { status: false, message: error.message },
+    };
+  }
 };
 
-exports.FetchUserListController = async (UserData) => {
-    try {
-        let QueryObject = {}
-        if (UserData?.UserType_Id === SuperAdminID) {
-            QueryObject = {
-                isDeleted: false,
-            }
-        } else if (UserData?.UserType_Id === JuniorEngineerID) {
-            QueryObject = {
-                isDeleted: false,
-                User_Id: { [Op.not]: SuperAdminID },
-                isBranchDefault: UserData?.isBranchDefault
-            }
-        }
+exports.UserListController = async (payloadUser, payloadBody) => {
+  try {
+    const { OrgId, BranchId, UserId } = payloadUser;
+    const { Action, Page, PageSize, FilterBy, SearchKey } = payloadBody;
 
-        const UserList = await UserModel.findAll({
-            where: QueryObject,
-            attributes:
-                ['User_Id', 'User_FirstName', 'User_LastName', 'User_Avatar', 'User_Email', 'User_EmploymentNumber', 'User_ImgPath', 'createdAt', 'UserType_Id'],
-            raw: true,
-        });
-
-        return ({
-            httpCode: SUCCESS_CODE,
-            result: {
-                status: true,
-                message: "SUCCESS",
-                data: UserList
-            }
-        });
-
-    } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
-        return ({
-            httpCode: SERVER_ERROR_CODE,
-            result: { status: false, message: error.message }
-        });
-    }
-};
-
-exports.UserModifyController = async (payloadUser, payloadBody, payloadFile) => {
-
-    try {
-        const { UserId, FirstName, LastName, UserEmail, UserNumber, Password, Language, RoleId } = payloadBody;
-        if (UserId) {
-
-
-        } else {
-
-            if (!FirstName || !LastName || !UserEmail || !Password || !RoleId) {
-                return ({
-                    httpCode: BAD_REQUEST_CODE,
-                    result: {
-                        status: false,
-                        message: "BAD_REQUEST_CODE",
-                    }
-                });
-            };
-
-            const findUser = await UserModel.findOne({
-                where: {
-                    [Op.or]: [
-                        { Email: UserEmail || "" },
-                        { Mobile: UserNumber || "" }
-                    ],
-                    isDeleted: false
-                },
-                raw: true
-            });
-
-            if (findUser?.UserId) {
-                return ({
-                    httpCode: SUCCESS_CODE,
-                    result: {
-                        status: false,
-                        message: "USER_NOT_VALID",
-                    }
-                });
-            };
-
-            const uuid = uuidv4();
-
-            const createdUser = await UserModel.create({
-                UUID: uuid,
-                FirstName: FirstName?.trim(),
-                LastName: LastName?.trim(),
-                AvatarName: FirstName?.[0] + LastName?.[0],
-                Email: UserEmail?.trim() || null,
-                Mobile: UserNumber || null,
-                Password: bcrypt.hashSync(Password?.trim(), 10),
-                createdAt: new Date,
-                updatedAt: new Date
-            });
-
-            await OrgUsersModel.create({
-                OrgId: payloadUser?.OrgId,
-                BranchId: payloadUser?.BranchId,
-                UserId: createdUser?.UserId,
-                RoleId: RoleId,
-                DefaultOrg: true
-            });
-
-            return ({
-                httpCode: SUCCESS_CODE,
-                result: {
-                    status: true,
-                    message: "USER_CREATED",
-                }
-            });
+    if (Action) {
+      if (!Page || !PageSize) {
+        return {
+          httpCode: BAD_REQUEST_CODE,
+          result: {
+            status: false,
+            message: "BAD_REQUEST_CODE",
+          },
         };
+      }
 
-    } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
-        return ({
-            httpCode: SERVER_ERROR_CODE,
-            result: { status: false, message: error.message }
-        });
+      var { limit, offset } = getPagination(Page, PageSize);
+    }
+
+    const whereCondition = {
+      // OrgId: OrgId,
+      // BranchId: BranchId,
+      isDeleted: false,
     };
 
+    const fetchList = await UserModel.findAll({
+      attributes: [
+        "UserId",
+        "FirstName",
+        "LastName",
+        "AvatarName",
+        "Email",
+        "Mobile",
+        "Language",
+        "isActive",
+        "createdAt",
+        [Sequelize.literal("CONCAT(FirstName, ' ', LastName)"), "FullName"],
+        [Sequelize.literal("CONCAT(UUID, '/', ImgPath)"), "ImgPath"],
+        [
+          Sequelize.literal(`(
+              SELECT r.RoleName 
+              FROM roles r 
+              JOIN orgusers ou ON ou.RoleId = r.RoleId 
+              WHERE ou.OrgId = ${OrgId} 
+              AND ou.BranchId = ${BranchId}
+              AND ou.UserId = users.UserId
+              LIMIT 1
+            )`),
+          "RoleName",
+        ],
+        [
+          Sequelize.literal(`(
+                SELECT r.RoleId 
+                FROM roles r 
+                JOIN orgusers ou ON ou.RoleId = r.RoleId 
+                WHERE ou.OrgId = ${OrgId} 
+                AND ou.BranchId = ${BranchId}
+                AND ou.UserId = users.UserId
+                LIMIT 1
+              )`),
+          "RoleId",
+        ],
+      ],
+      where: whereCondition,
+      raw: true,
+    });
+
+    if (Action) {
+      const totalCount = await UserModel.count({
+        where: whereCondition,
+        distinct: true,
+        subQuery: false,
+      });
+
+      let totalPage = Math.ceil(totalCount / limit);
+
+      return {
+        httpCode: SUCCESS_CODE,
+        result: {
+          status: true,
+          message: "SUCCESS",
+          data: {
+            list: fetchList,
+            totalRecords: totalCount,
+            totalPages: totalPage,
+            currentPage: parseInt(Page),
+          },
+        },
+      };
+    } else {
+      return {
+        httpCode: SUCCESS_CODE,
+        result: {
+          status: true,
+          message: "SUCCESS",
+          data: { list: fetchList },
+        },
+      };
+    }
+  } catch (error) {
+    console.log(`\x1b[91m ${error} \x1b[91m`);
+    return {
+      httpCode: SERVER_ERROR_CODE,
+      result: {
+        status: false,
+        message: error.message,
+      },
+    };
+  }
+};
+
+exports.UserModifyController = async (
+  payloadUser,
+  payloadBody,
+  payloadFile
+) => {
+  try {
+    let { OrgId, BranchId, UserId } = payloadUser;
+
+    const {
+      EditUserId,
+      FirstName,
+      LastName,
+      UserEmail,
+      UserNumber,
+      Language,
+      RoleId,
+    } = payloadBody;
+
+    if (!FirstName || !LastName || !UserEmail || !RoleId) {
+      return {
+        httpCode: BAD_REQUEST_CODE,
+        result: { status: false, message: "BAD_REQUEST_CODE" },
+      };
+    }
+
+    const target = await UserModel.findOne({
+      where: {
+        [Op.or]: [{ Email: UserEmail || "" }, { Mobile: UserNumber || "" }],
+        isDeleted: false,
+      },
+      include: [
+        {
+          model: OrgUsersModel,
+        },
+      ],
+    });
+
+    if (!EditUserId) {
+      let findBranchInUser = {};
+
+      if (target?.UserId) {
+        findBranchInUser = target?.orgusers?.find(
+          (item) => item.OrgId === OrgId && item.BranchId === BranchId
+        );
+
+        if (!findBranchInUser?.isDeleted) {
+          return {
+            httpCode: SUCCESS_CODE,
+            result: { status: false, message: "DUPLICATE" },
+          };
+        } else {
+          await OrgUsersModel.update(
+            { isDeleted: false, RoleId: RoleId },
+            {
+              where: {
+                OrgUserId: findBranchInUser?.OrgUserId,
+              },
+            }
+          );
+
+          return {
+            httpCode: SUCCESS_CODE,
+            result: { status: true, message: "USER_CREATED" },
+          };
+        }
+      }
+
+      const uuid = uuidv4();
+      let imagePath = null;
+      const password = await generatePassword(12);
+
+      if (payloadFile) {
+        imagePath = await FileUpload(
+          payloadFile?.ImgPath,
+          uuid,
+          UserProfileImagePath
+        );
+      }
+
+      const NewUser = await UserModel.create({
+        FirstName: FirstName?.trim(),
+        LastName: LastName?.trim(),
+        UUID: uuid,
+        ImgPath: imagePath || null,
+        Email: UserEmail?.trim() || null,
+        Mobile: UserNumber || null,
+        Password: bcrypt?.hashSync(password?.trim(), 10),
+        AvatarName: `${FirstName?.charAt(0).toUpperCase() || ""}${
+          LastName?.charAt(0).toUpperCase() || ""
+        }`,
+        Language: Language || "EN",
+      });
+
+      await OrgUsersModel.create({
+        OrgId: OrgId,
+        BranchId: BranchId,
+        UserId: NewUser?.UserId,
+        RoleId: RoleId,
+        DefaultOrg: false,
+      });
+
+      const emailDetails = {
+        to: UserEmail,
+        subject: `Welcome to ${ProjectName} Registration Successful`,
+        description: `<div style="font-family: Arial, sans-serif; line-height: 1.6;">
+                    <h2 style="color: #4CAF50; text-align: center;">Welcome to Our System!</h2>
+                    <p>Hello <strong>${FirstName + " " + LastName}</strong>,</p>
+                    <p>You have been added to our system. Here are your login details:</p>
+                    <p><strong>Email:</strong> ${UserEmail}</p>
+                    <p><strong>Temporary Password:</strong></p>
+                    <div style="background-color: #f4f4f9; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 18px; font-weight: bold; text-align: center; color: #333; margin-bottom: 20px;">
+                        ${password}
+                    </div>
+                    <p>If you wish to change your password, please click the button below:</p>
+                    <p style="text-align: center;">
+                        <a href="${resetLink}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold; display: inline-block;">Change Password</a>
+                    </p>
+                    <p>If you did not request this, you can ignore this email.</p>
+                    <p>Thank you,<br>The Team</p>
+                    <div style="margin-top: 20px; font-size: 14px; color: #777; text-align: center;">
+                        &copy; ${new Date().getFullYear()} Our Company. All rights reserved.
+                    </div>
+                </div>`,
+      };
+
+      await emailFormat(emailDetails);
+
+      return {
+        httpCode: SUCCESS_CODE,
+        result: { status: true, message: "USER_CREATED" },
+      };
+    } else {
+      if (target?.EditUserId && target?.EditUserId != EditUserId) {
+        return {
+          httpCode: SUCCESS_CODE,
+          result: {
+            status: false,
+            message: "DUPLICATE",
+          },
+        };
+      } else {
+        let imagePath = target?.ImgPath;
+
+        if (payloadFile) {
+          imagePath = await FileUpload(
+            payloadFile?.ImgPath,
+            target?.UUID,
+            UserProfileImagePath,
+            target?.ImgPath
+          );
+        }
+        await UserModel.update(
+          {
+            FirstName: FirstName?.trim(),
+            LastName: LastName?.trim(),
+            AvatarName: `${FirstName?.charAt(0).toUpperCase() || ""}${
+              LastName?.charAt(0).toUpperCase() || ""
+            }`,
+            Email: UserEmail?.trim(),
+            Mobile: UserNumber || null,
+            Language: Language || "EN",
+            ImgPath: imagePath || null,
+          },
+          {
+            where: {
+              isDeleted: false,
+              UserId: EditUserId,
+            },
+          }
+        );
+
+        await OrgUsersModel.update(
+          { RoleId: RoleId },
+          {
+            where: {
+              OrgId: OrgId,
+              BranchId: BranchId,
+              UserId: EditUserId,
+            },
+          }
+        );
+
+        return {
+          httpCode: SUCCESS_CODE,
+          result: { status: true, message: "SUCCESS" },
+        };
+      }
+    }
+  } catch (error) {
+    console.log(`\x1b[91m ${error} \x1b[91m`);
+    return {
+      httpCode: SERVER_ERROR_CODE,
+      result: {
+        status: false,
+        message: error.message,
+      },
+    };
+  }
+};
+
+exports.UserRemoveController = async (payloadUser, payloadQuery) => {
+  try {
+    console.log(payloadUser, "payloadUser ");
+    const { OrgId, BranchId, UserId, RoleId } = payloadUser;
+    const { RemoveId } = payloadQuery;
+
+    if (RoleId === superAdminRoleId) {
+      await UserModel.update(
+        {
+          isDeleted: true,
+          isActive: false,
+        },
+        {
+          where: {
+            OrgId: OrgId,
+            BranchId: BranchId,
+            UserId: RemoveId,
+          },
+        }
+      );
+
+      await OrgUsersModel.update(
+        {
+          isDeleted: true,
+          isActive: false,
+        },
+        {
+          where: {
+            UserId: RemoveId,
+          },
+        }
+      );
+
+    } else {
+      await OrgUsersModel.update(
+        {
+          isDeleted: true,
+          isActive: false,
+        },
+        {
+          where: {
+            OrgId: OrgId,
+            BranchId: BranchId,
+            UserId: RemoveId,
+          },
+        }
+      );
+    };
+    return {
+      httpCode: SUCCESS_CODE,
+      result: {
+        status: true,
+        message: "SUCCESS",
+      },
+    };
+  } catch (error) {
+    console.log(`\x1b[91m ${error} \x1b[91m`);
+    return {
+      httpCode: SERVER_ERROR_CODE,
+      result: {
+        status: false,
+        message: error.message,
+      },
+    };
+  }
 };

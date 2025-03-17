@@ -9,3 +9,8 @@ CHANGE COLUMN `MinAmount` `MinAmount` DECIMAL(10,2) NULL DEFAULT '0.00' ;
 ALTER TABLE `demo_test`.`fn_parties` 
 ADD COLUMN `MaxAmount` DECIMAL(10,2) NULL AFTER `MinAmount`,
 CHANGE COLUMN `MinAmount` `MinAmount` DECIMAL(10,2) NULL DEFAULT '0.00' ;
+
+ALTER TABLE `demo_test`.`users` 
+DROP INDEX `Mobile` ,
+DROP INDEX `Email` ;
+;

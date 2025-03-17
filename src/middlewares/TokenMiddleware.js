@@ -6,6 +6,7 @@ const { TOKEN_NOT_VALID_CODE, TOKEN_NOT_PROVIDED_CODE } = require("../api/consta
 const { DevelopMood } = require("../api/constants/constants");
 
 const db = require('../api/models');
+const { Sequelize } = require('sequelize');
 const UserModel = db.UserModel;
 const OrgUsersModel = db.OrgUsersModel;
 
@@ -35,6 +36,7 @@ module.exports = async (req, res, next) => {
                                 "UserId",
                                 "RoleId",
                                 "DefaultOrg",
+                                [Sequelize.literal(`(SELECT RoleName FROM orgusers JOIN roles ON roles.RoleId = orgusers.RoleId LIMIT 1)`),"RoleName",]
                             ],
                             where: {
                                 UserId: decoded.UserId,
