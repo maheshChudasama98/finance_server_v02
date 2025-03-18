@@ -4,7 +4,7 @@ const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
 const db = require("../models/index");
 const { Op } = require('sequelize');
-const { defaultCategoryList } = require('../constants/defaultData');
+const { defaultCategoryList, modulesList  , roleList} = require('../constants/defaultData');
 
 const OrgModel = db.OrgModel;
 const RolesModel = db.RolesModel;
@@ -16,24 +16,6 @@ const UserModel = db.UserModel;
 const OrgUsersModel = db.OrgUsersModel;
 const CategoriesModel = db.CategoriesModel;
 const SubCategoriesModel = db.SubCategoriesModel;
-
-const roleList = [
-    { RoleName: "User Admin", Description: "All Right have" },
-    { RoleName: "Admin", Description: "Admin" },
-    { RoleName: "User", Description: "User" },
-    { RoleName: "Manager", Description: "Manager" },
-];
-
-const modulesList = [
-    { ModulesName: "Records", Description: "Records", },
-    { ModulesName: "Accounts", Description: "Accounts" },
-    { ModulesName: "Counter Party", Description: "Counter Party" },
-    { ModulesName: "Templates", Description: "Templates" },
-    { ModulesName: "Categories", Description: "Categories" },
-    { ModulesName: "Labels", Description: "Labels" },
-    { ModulesName: "General Setting", Description: "General Setting" },
-    { ModulesName: "Setting", Description: "Setting" },
-];
 
 exports.UserBasedDefaultCategory = async (UserId, OrgId, BranchId) => {
 
@@ -154,7 +136,7 @@ exports.DefaultDatabaseAction = async () => {
                 Description: element?.Description,
                 OrgId: defaultOrg?.OrgId,
                 BranchId: defaultBranch?.BranchId,
-                Router: "Router",
+                Router: element?.Router,
                 isDeleted: false,
                 isActive: true
             });
@@ -297,6 +279,7 @@ exports.ModulesSetAction = async (OrgId) => {
             await ModulesModel.create({
                 ModulesName: element?.ModulesName,
                 Description: element?.Description,
+                Router: element?.Router,
                 OrgId: OrgId,
                 isDeleted: false,
                 isActive: true
@@ -413,6 +396,7 @@ exports.RolesSetAction = async () => {
                 ModulesName: element?.ModulesName,
                 Description: element?.Description,
                 OrgId: defaultOrg?.OrgId,
+                Router: element?.Router,
                 isDeleted: false,
                 isActive: true
             });
