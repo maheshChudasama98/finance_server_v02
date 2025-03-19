@@ -20,6 +20,9 @@ module.exports = (sequelize, DataTypes) => {
         Router: {
             type: DataTypes.STRING,
         },
+        Icon: {
+            type: DataTypes.STRING,
+        },
         ParentNoteId: {
             type: DataTypes.INTEGER,
         },

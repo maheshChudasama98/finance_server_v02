@@ -153,6 +153,8 @@ exports.UserInfoController = async (payloadUser) => {
         "CanRead",
         "CanWrite",
         [Sequelize.col("module.ModulesName"), "ModulesName"],
+        [Sequelize.col("module.Icon"), "Icon"],
+        [Sequelize.col("module.Router"), "Router"],
       ],
       where: { RoleId: UserDetails?.RoleId },
       include: [

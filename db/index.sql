@@ -13,4 +13,8 @@ CHANGE COLUMN `MinAmount` `MinAmount` DECIMAL(10,2) NULL DEFAULT '0.00' ;
 ALTER TABLE `demo_test`.`users` 
 DROP INDEX `Mobile` ,
 DROP INDEX `Email` ;
-;
+
+
+ALTER TABLE `demo_test`.`modules` 
+ADD COLUMN `Icon` VARCHAR(255) NULL AFTER `Router`;
+

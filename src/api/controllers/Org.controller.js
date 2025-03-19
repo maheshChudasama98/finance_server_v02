@@ -605,7 +605,7 @@ exports.BranchActiveController = async (payloadUser, payloadQuery) => {
 
 exports.ModuleModifyController = async (payloadUser, payloadBody) => {
     try {
-        const { ModulesId, ModulesName, Description, ParentNoteId } = payloadBody;
+        const { ModulesId, ModulesName, Description, ParentNoteId, Router, Icon} = payloadBody;
 
         const target = await ModulesModel.findOne({
             where: {
@@ -630,8 +630,10 @@ exports.ModuleModifyController = async (payloadUser, payloadBody) => {
 
                const created =  await ModulesModel.create({
                     ModulesName: ModulesName?.trim() || null,
+                    Router: Router?.trim() || null,
                     Description: Description,
                     ParentNoteId: ParentNoteId || null,
+                    Icon: Icon|| null,
                     OrgId: payloadUser?.OrgId,
                     BranchId: payloadUser?.BranchId,
                     isDeleted: false,
@@ -682,7 +684,9 @@ exports.ModuleModifyController = async (payloadUser, payloadBody) => {
 
                 await ModulesModel.update({
                     ModulesName: ModulesName?.trim() || null,
+                    Router: Router?.trim() || null,
                     Description: Description,
+                    Icon: Icon|| null,
                     ParentNoteId: ParentNoteId || null,
                 }, { where: { ModulesId: ModulesId } });
 
@@ -742,7 +746,7 @@ exports.ModuleListController = async (payloadUser, payloadBody) => {
         };
 
         const list = await ModulesModel.findAll({
-            attributes: ["ModulesId", "ModulesName", "Description", "ParentNoteId", "isDeleted", "isActive", "createdAt", "updatedAt"],
+            attributes: ["ModulesId", "ModulesName", "Description", "ParentNoteId","Icon", "Router", "isDeleted", "isActive", "createdAt", "updatedAt"],
             where: whereCondition,
             limit: limit,
             offset: offset,
