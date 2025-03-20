@@ -6,16 +6,18 @@ const db = require("../models/index");
 const { Op, Sequelize, where } = require("sequelize");
 const { FileUpload } = require("../../helpers/FileUpload.helper");
 const { OrgImagePath, BranchImagePath } = require("../constants/constants");
+const { modulesList, roleList } = require("../constants/defaultData");
 const OrgModel = db.OrgModel;
 const ModulesModel = db.ModulesModel;
 const BranchesModel = db.BranchesModel;
 const RolesModel = db.RolesModel;
 const PermissionModel = db.PermissionModel;
+const OrgUsersModel = db.OrgUsersModel;
 
 // ------------------------ || Org Controllers || ------------------------ //
 
 exports.OrgModifyController = async (payloadUser, payloadBody, payloadFile) => {
-    try { 
+    try {
         const { OrgId, OrgName, Description } = payloadBody;
 
         const orgTarget = await OrgModel.findOne({
@@ -34,11 +36,11 @@ exports.OrgModifyController = async (payloadUser, payloadBody, payloadFile) => {
                 const uuid = uuidv4();
                 let imagePath = null;
 
-                if (payloadFile) {                    
+                if (payloadFile) {
                     imagePath = await FileUpload(payloadFile?.ImgPath, uuid, OrgImagePath,);
                 };
 
-                await OrgModel.create({
+                const NewOrg = await OrgModel.create({
                     OrgName: OrgName?.trim() || null,
                     Description: Description,
                     ImgPath: imagePath,
@@ -46,6 +48,97 @@ exports.OrgModifyController = async (payloadUser, payloadBody, payloadFile) => {
                     isDeleted: false,
                     isActive: true
                 });
+
+                const NewBranch = await BranchesModel.create({
+                    BranchName: "Main Branch" || null,
+                    Description: "This is main branch",
+                    OrgId: NewOrg.OrgId,
+                    UUID: uuidv4(),
+                    isDeleted: false,
+                    isActive: true
+                });
+
+                for (let index = 0; index < modulesList.length; index++) {
+
+                    const element = modulesList[index];
+
+                    const findModules = await ModulesModel.findOne({
+                        where: {
+                            ModulesName: element?.ModulesName,
+                            OrgId: NewOrg?.OrgId,
+                            BranchId: NewBranch?.BranchId,
+                        },
+                        raw: true
+                    });
+
+                    if (!findModules?.ModulesId) {
+                        await ModulesModel.create({
+                            ModulesName: element?.ModulesName,
+                            Description: element?.Description,
+                            OrgId: NewOrg?.OrgId,
+                            BranchId: NewBranch?.BranchId,
+                            Icon: element?.Icon,
+                            Router: element?.Router,
+                            isDeleted: false,
+                            isActive: true
+                        });
+                    };
+                };
+
+                const filter = roleList?.filter(item => item?.RoleName !== "Super Admin")
+                for (let index = 0; index < filter.length; index++) {
+
+                    const element = filter[index];
+
+                    const findRole = await RolesModel.findOne({
+                        where: {
+                            RoleName: element?.RoleName,
+                            OrgId: NewOrg?.OrgId,
+                            BranchId: NewBranch?.BranchId,
+                        },
+                        raw: true
+                    });
+
+                    if (!findRole?.RoleId) {
+
+                        const roleCreated = await RolesModel.create({
+                            RoleName: element?.RoleName,
+                            Description: element?.Description,
+                            OrgId: NewOrg?.OrgId,
+                            BranchId: NewBranch?.BranchId,
+                            isDeleted: false,
+                            isActive: true
+                        });
+
+                        const listModules = await ModulesModel.findAll({
+                            where: {
+                                OrgId: NewOrg?.OrgId,
+                            }, raw: true
+                        });
+
+                        for (let index = 0; index < listModules.length; index++) {
+
+                            const element = listModules[index];
+
+                            await PermissionModel.create({
+                                RoleId: roleCreated?.RoleId,
+                                ModuleId: element?.ModulesId,
+                                CanRead: true,
+                                CanWrite: true
+                            });
+                        };
+
+                    };
+                };
+
+                await OrgUsersModel.create({
+                    OrgId: NewOrg?.OrgId,
+                    BranchId: NewBranch?.BranchId,
+                    UserId: 1,
+                    RoleId: 1,
+                    isDeleted: false,
+                    isActive: true,
+                })
 
                 return ({
                     httpCode: SUCCESS_CODE,
@@ -66,8 +159,8 @@ exports.OrgModifyController = async (payloadUser, payloadBody, payloadFile) => {
 
                 let imagePath = orgTarget?.ImgPath;
 
-                if (payloadFile) {                    
-                    imagePath = await FileUpload(payloadFile?.ImgPath, orgTarget?.UUID, OrgImagePath , orgTarget?.ImgPath);
+                if (payloadFile) {
+                    imagePath = await FileUpload(payloadFile?.ImgPath, orgTarget?.UUID, OrgImagePath, orgTarget?.ImgPath);
                 };
 
                 await OrgModel.update({
@@ -130,7 +223,7 @@ exports.OrgListController = async (payloadUser, payloadBody) => {
                 "isActive",
                 "createdAt",
                 [
-                    Sequelize.literal(`CONCAT('${OrgImagePath}','/', UUID, '/', ImgPath)`),"ImgPath"
+                    Sequelize.literal(`CONCAT('${OrgImagePath}','/', UUID, '/', ImgPath)`), "ImgPath"
                 ],
                 [
                     Sequelize.literal(`( SELECT COUNT(*) FROM branches WHERE branches.OrgId = orgs.OrgId  AND branches.isDeleted = false)`), 'TotalBranches'
@@ -289,9 +382,9 @@ exports.OrgActiveController = async (payloadUser, payloadQuery) => {
 
 // ------------------------ || Branches Controllers || ------------------------ //
 
-exports.BranchModifyController = async (payloadUser, payloadBody ,payloadFile) => {
+exports.BranchModifyController = async (payloadUser, payloadBody, payloadFile) => {
     try {
-        const { BranchId, BranchName, Description, Address, City , State, GstNumber, Phone, Email} = payloadBody;
+        const { BranchId, BranchName, Description, Address, City, State, GstNumber, Phone, Email } = payloadBody;
 
         const target = await BranchesModel.findOne({
             where: {
@@ -318,7 +411,7 @@ exports.BranchModifyController = async (payloadUser, payloadBody ,payloadFile) =
 
                 let imagePath = null;
 
-                if (payloadFile) {                    
+                if (payloadFile) {
                     imagePath = await FileUpload(payloadFile?.ImgPath, uuid, BranchImagePath,);
                 };
 
@@ -328,8 +421,8 @@ exports.BranchModifyController = async (payloadUser, payloadBody ,payloadFile) =
                     OrgId: payloadUser?.OrgId,
                     ImgPath: imagePath,
                     Address,
-                    City, 
-                    State, 
+                    City,
+                    State,
                     GstNumber,
                     Phone,
                     Email,
@@ -363,17 +456,17 @@ exports.BranchModifyController = async (payloadUser, payloadBody ,payloadFile) =
 
                 let imagePath = target?.ImgPath;
 
-                if (payloadFile) {                    
+                if (payloadFile) {
                     imagePath = await FileUpload(payloadFile?.ImgPath, target?.UUID, BranchImagePath, target?.ImgPath);
                 };
-                
+
                 await BranchesModel.update({
                     BranchName: BranchName?.trim() || null,
                     Description: Description,
                     ImgPath: imagePath,
                     Address,
-                    City, 
-                    State, 
+                    City,
+                    State,
                     GstNumber,
                     Phone,
                     Email,
@@ -407,8 +500,8 @@ exports.BranchListController = async (payloadUser, payloadBody) => {
     try {
         const { Action, Page, PageSize, FilterBy } = payloadBody;
 
-        console.log(payloadUser?.RoleId , "payloadUser payloadUser");
-        
+        console.log(payloadUser?.RoleId, "payloadUser payloadUser");
+
 
         if (Action) {
 
@@ -438,7 +531,7 @@ exports.BranchListController = async (payloadUser, payloadBody) => {
             whereCondition.OrgId = { [Op.in]: FilterBy?.Orgs };
         };
         if (payloadUser?.RoleId !== 1) {
-            whereCondition.OrgId =  payloadUser?.OrgId ;
+            whereCondition.OrgId = payloadUser?.OrgId;
         }
 
         const branchesList = await BranchesModel.findAll({
@@ -456,7 +549,7 @@ exports.BranchListController = async (payloadUser, payloadBody) => {
                 "createdAt",
                 "updatedAt",
                 [
-                    Sequelize.literal(`CONCAT('${BranchImagePath}','/', branches.UUID, '/', branches.ImgPath)`),"ImgPath"
+                    Sequelize.literal(`CONCAT('${BranchImagePath}','/', branches.UUID, '/', branches.ImgPath)`), "ImgPath"
                 ],
                 [Sequelize.col("org.OrgName"), 'OrgName'],
                 [Sequelize.literal(`(SELECT COUNT(orgusers.BranchId)  FROM orgusers  WHERE orgusers.BranchId = branches.BranchId  AND orgusers.isDeleted = false)`), 'TotalUser'],
@@ -605,7 +698,7 @@ exports.BranchActiveController = async (payloadUser, payloadQuery) => {
 
 exports.ModuleModifyController = async (payloadUser, payloadBody) => {
     try {
-        const { ModulesId, ModulesName, Description, ParentNoteId, Router, Icon} = payloadBody;
+        const { ModulesId, ModulesName, Description, ParentNoteId, Router, Icon } = payloadBody;
 
         const target = await ModulesModel.findOne({
             where: {
@@ -628,36 +721,36 @@ exports.ModuleModifyController = async (payloadUser, payloadBody) => {
                 });
             } else {
 
-               const created =  await ModulesModel.create({
+                const created = await ModulesModel.create({
                     ModulesName: ModulesName?.trim() || null,
                     Router: Router?.trim() || null,
                     Description: Description,
                     ParentNoteId: ParentNoteId || null,
-                    Icon: Icon|| null,
+                    Icon: Icon || null,
                     OrgId: payloadUser?.OrgId,
                     BranchId: payloadUser?.BranchId,
                     isDeleted: false,
                     isActive: true
                 });
 
-                const roleList=  await RolesModel.findAll({
-                    where :{
-                     isDeleted: false,
-                     OrgId: payloadUser?.OrgId,
+                const roleList = await RolesModel.findAll({
+                    where: {
+                        isDeleted: false,
+                        OrgId: payloadUser?.OrgId,
                     },
-                    raw :true
-                 });
-                 
-                const bulkData = await roleList.map((item)=>(
+                    raw: true
+                });
+
+                const bulkData = await roleList.map((item) => (
                     {
-                        ModuleId :created?.ModulesId,
-                        RoleId : item?.RoleId,
-                        CanRead : true,
-                        CanWrite :true
+                        ModuleId: created?.ModulesId,
+                        RoleId: item?.RoleId,
+                        CanRead: true,
+                        CanWrite: true
                     }
                 ));
-                
-                await PermissionModel.bulkCreate(bulkData); 
+
+                await PermissionModel.bulkCreate(bulkData);
 
                 return ({
                     httpCode: SUCCESS_CODE,
@@ -686,7 +779,7 @@ exports.ModuleModifyController = async (payloadUser, payloadBody) => {
                     ModulesName: ModulesName?.trim() || null,
                     Router: Router?.trim() || null,
                     Description: Description,
-                    Icon: Icon|| null,
+                    Icon: Icon || null,
                     ParentNoteId: ParentNoteId || null,
                 }, { where: { ModulesId: ModulesId } });
 
@@ -746,7 +839,7 @@ exports.ModuleListController = async (payloadUser, payloadBody) => {
         };
 
         const list = await ModulesModel.findAll({
-            attributes: ["ModulesId", "ModulesName", "Description", "ParentNoteId","Icon", "Router", "isDeleted", "isActive", "createdAt", "updatedAt"],
+            attributes: ["ModulesId", "ModulesName", "Description", "ParentNoteId", "Icon", "Router", "isDeleted", "isActive", "createdAt", "updatedAt"],
             where: whereCondition,
             limit: limit,
             offset: offset,
@@ -895,7 +988,7 @@ exports.RoleModifyController = async (payloadUser, payloadBody) => {
                 });
             } else {
 
-               const roleCreated=  await RolesModel.create({
+                const roleCreated = await RolesModel.create({
                     RoleName: RoleName?.trim() || null,
                     Description: Description,
                     OrgId: payloadUser?.OrgId,
@@ -904,24 +997,24 @@ exports.RoleModifyController = async (payloadUser, payloadBody) => {
                     isActive: true
                 });
 
-                const moduleList=  await ModulesModel.findAll({
-                   where :{
-                    isDeleted: false,
-                    OrgId: payloadUser?.OrgId,
-                   },
-                   raw :true
+                const moduleList = await ModulesModel.findAll({
+                    where: {
+                        isDeleted: false,
+                        OrgId: payloadUser?.OrgId,
+                    },
+                    raw: true
                 });
-                
-                const bulkData = await moduleList.map((item)=>(
+
+                const bulkData = await moduleList.map((item) => (
                     {
-                        ModuleId :item?.ModulesId,
-                        RoleId :roleCreated?.RoleId,
-                        CanRead : true,
-                        CanWrite :true
+                        ModuleId: item?.ModulesId,
+                        RoleId: roleCreated?.RoleId,
+                        CanRead: true,
+                        CanWrite: true
                     }
                 ));
-                                
-                await PermissionModel.bulkCreate(bulkData);                
+
+                await PermissionModel.bulkCreate(bulkData);
 
                 return ({
                     httpCode: SUCCESS_CODE,
@@ -993,7 +1086,7 @@ exports.RoleListController = async (payloadUser, payloadBody) => {
             var { limit, offset } = getPagination(Page, PageSize);
         };
 
-        const whereCondition = { isDeleted: false, OrgId : payloadUser?.OrgId};
+        const whereCondition = { isDeleted: false, OrgId: payloadUser?.OrgId };
 
         if (FilterBy?.RoleName) {
             whereCondition.RoleName = { [Op.like]: "%" + FilterBy?.RoleName + "%", };
@@ -1007,7 +1100,7 @@ exports.RoleListController = async (payloadUser, payloadBody) => {
             whereCondition.OrgId = { [Op.in]: FilterBy?.Orgs };
         };
 
-        if (payloadUser?.OrgId !==1 ) {
+        if (payloadUser?.OrgId !== 1) {
             whereCondition.RoleId = { [Op.not]: 1 };
         };
 
@@ -1141,7 +1234,7 @@ exports.RoleActiveController = async (payloadUser, payloadQuery) => {
 
 };
 
-exports.PermissionController = async(payloadUser , payloadQuery) => {
+exports.PermissionController = async (payloadUser, payloadQuery) => {
     try {
         const { RoleId } = payloadQuery;
 
@@ -1149,10 +1242,10 @@ exports.PermissionController = async(payloadUser , payloadQuery) => {
             return {
                 httpCode: BAD_REQUEST_CODE,
                 result: {
-                  status: false,
-                  message: "BAD_REQUEST_CODE",
+                    status: false,
+                    message: "BAD_REQUEST_CODE",
                 },
-              };
+            };
         };
 
         async function fetchModulesWithChildren(parentId = null) {
@@ -1163,19 +1256,19 @@ exports.PermissionController = async(payloadUser , payloadQuery) => {
                         [Sequelize.col('permissions.CanRead'), 'CanRead'],
                         [Sequelize.col('permissions.CanWrite'), 'CanWrite']
                     ],
-                    where: parentId ? { ParentNoteId: parentId , isDeleted :false } : { ParentNoteId: null , isDeleted :false },
+                    where: parentId ? { ParentNoteId: parentId, isDeleted: false } : { ParentNoteId: null, isDeleted: false },
                     include: [{
                         attributes: [],
                         model: PermissionModel,
                         where: { RoleId: RoleId }
                     }],
-                    raw:true
+                    raw: true
                 });
 
                 if (!modules.length) return [];
 
                 for (let module of modules) {
-                    const children = await fetchModulesWithChildren(module.ModulesId);                    
+                    const children = await fetchModulesWithChildren(module.ModulesId);
                     module.children = children;
                 }
                 return modules;
@@ -1188,8 +1281,8 @@ exports.PermissionController = async(payloadUser , payloadQuery) => {
 
         const getRoleAccessNested = await fetchModulesWithChildren()
 
-        
-        
+
+
 
         const moduleList = await PermissionModel.findAll({
             attributes: [
@@ -1248,7 +1341,7 @@ exports.PermissionController = async(payloadUser , payloadQuery) => {
 
 };
 
-exports.PermissionModifyController = async(payloadUser, payloadBody,) => {
+exports.PermissionModifyController = async (payloadUser, payloadBody,) => {
     try {
         const { ModifyArray } = payloadBody;
 
@@ -1256,10 +1349,10 @@ exports.PermissionModifyController = async(payloadUser, payloadBody,) => {
             return {
                 httpCode: BAD_REQUEST_CODE,
                 result: {
-                  status: false,
-                  message: "BAD_REQUEST_CODE",
+                    status: false,
+                    message: "BAD_REQUEST_CODE",
                 },
-              };
+            };
         };
 
         for (let index = 0; index < ModifyArray?.length; index++) {

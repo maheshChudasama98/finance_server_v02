@@ -1,4 +1,4 @@
-const { Op } = require("sequelize")
+const { Op, Sequelize } = require("sequelize")
 var jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const { v4: uuidv4 } = require('uuid');
@@ -10,13 +10,14 @@ const { SUCCESS_CODE, ERROR_CODE, BAD_REQUEST_CODE, SERVER_ERROR_CODE } = requir
 const secureKey = process.env.TOKEN_SECURE_KEY;
 
 const db = require("../models");
+const { defaultOrgSetAction } = require("../../helpers/Actions.helper");
 const UserModel = db.UserModel;
 const OrgUsersModel = db.OrgUsersModel;
 
 exports.LoginController = async (payloadBody) => {
     try {
         const { UserEmail, UserNumber, UserPassword } = payloadBody;
-        
+
         if (!((UserEmail != null || UserEmail != undefined) || (UserNumber != null || UserNumber != undefined)) || !(UserPassword != null || UserPassword != undefined)) {
 
             return ({
@@ -29,25 +30,117 @@ exports.LoginController = async (payloadBody) => {
 
         } else {
 
-            const TargetUser = await UserModel.findOne({
+            let TargetUser = {}
+
+            TargetUser = await OrgUsersModel.findOne({
+                attributes: [
+                    "OrgId",
+                    "BranchId",
+                    [Sequelize.col("user.UUID"), 'UUID'],
+                    [Sequelize.col("user.UserId"), 'UserId'],
+                    [Sequelize.col("user.Password"), 'Password'],
+                    [Sequelize.col("user.FirstName"), 'FirstName'],
+                    [Sequelize.col("user.LastName"), 'LastName'],
+                    [Sequelize.col("user.Email"), 'Email'],
+                    [Sequelize.col("user.Mobile"), 'Mobile'],
+                    [Sequelize.col("user.createdAt"), 'createdAt'],
+                ],
+                include: [
+                    {
+                        model: UserModel,
+                        attributes: [],
+                        require: true,
+                        where: {
+                            isActive: true,
+                            isDeleted: false,
+                            [Op.or]: [
+                                { Email: UserEmail || "" },
+                                { Mobile: UserNumber || "" }
+                            ],
+                        }
+                    },
+                ],
                 where: {
-                    [Op.or]: [
-                        { Email: UserEmail || "" },
-                        { Mobile: UserNumber || "" }
-                    ],
+                    DefaultOrg: true,
+                    isActive: true,
                     isDeleted: false
                 },
                 raw: true
             });
 
             if (!TargetUser?.UserId) {
-                return ({
-                    httpCode: SUCCESS_CODE,
-                    result: {
-                        status: false,
-                        message: "USER_NOT_VALID"
-                    }
+
+                const User = await UserModel.findOne({
+                    where: {
+                        isActive: true,
+                        isDeleted: false,
+                        [Op.or]: [
+                            { Email: UserEmail || "" },
+                            { Mobile: UserNumber || "" }
+                        ],
+                    },
+                    raw: true
                 });
+
+                if (!User?.UserId) {
+                    return ({
+                        httpCode: SUCCESS_CODE,
+                        result: {
+                            status: false,
+                            message: "USER_NOT_VALID"
+                        }
+                    });
+                } else {
+                    TargetUser = await OrgUsersModel.findOne({
+                        where: {
+                            UserId: User?.UserId,
+                            isActive: true,
+                            isDeleted: false
+                        },
+                        include: [
+                            {
+                                model: UserModel,
+                                attributes: [],
+                                require: true,
+                                where: {
+                                    isActive: true,
+                                    isDeleted: false,
+                                    [Op.or]: [
+                                        { Email: UserEmail || "" },
+                                        { Mobile: UserNumber || "" }
+                                    ],
+                                }
+                            },
+                        ],
+                        attributes: [
+                            "OrgId",
+                            "BranchId",
+                            "OrgUserId",
+                            [Sequelize.col("user.UUID"), 'UUID'],
+                            [Sequelize.col("user.UserId"), 'UserId'],
+                            [Sequelize.col("user.Password"), 'Password'],
+                            [Sequelize.col("user.FirstName"), 'FirstName'],
+                            [Sequelize.col("user.LastName"), 'LastName'],
+                            [Sequelize.col("user.Email"), 'Email'],
+                            [Sequelize.col("user.Mobile"), 'Mobile'],
+                            [Sequelize.col("user.createdAt"), 'createdAt'],
+                        ],
+                        raw: true
+                    });
+
+                    if (!TargetUser?.UserId) {
+                        return ({
+                            httpCode: SUCCESS_CODE,
+                            result: {
+                                status: false,
+                                message: "USER_NOT_VALID"
+                            }
+                        });
+                    } else {
+                        await defaultOrgSetAction(TargetUser?.UserId, TargetUser?.OrgUserId)
+                    }
+                }
+
             };
 
             const passwordMatch = await new Promise((resolve, reject) => {
@@ -82,6 +175,8 @@ exports.LoginController = async (payloadBody) => {
                 });
             });
 
+            console.log(token, "token");
+
             return ({
                 httpCode: SUCCESS_CODE,
                 result: {
@@ -91,7 +186,7 @@ exports.LoginController = async (payloadBody) => {
                 }
             });
         };
-        
+
     } catch (error) {
         console.log(`\x1b[91m ${error} \x1b[91m`);
         return ({
@@ -459,3 +554,4 @@ exports.UserRegistrationController = async (payloadBody) => {
         });
     }
 };
+

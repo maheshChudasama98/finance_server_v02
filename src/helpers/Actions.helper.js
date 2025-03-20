@@ -1,8 +1,9 @@
 const { PasswordRegex } = require("../api/constants/constants");
+const db = require("../api/models/index");
+const OrgUsersModel = db.OrgUsersModel;
 
 const moment = require("moment");
 
-//  This is calculate duration  
 const durationFindFun = async (duration, SelectDate) => {
     const CurrentDate = SelectDate ? new Date(SelectDate) : new Date();
     const date = new Date(CurrentDate);
@@ -73,39 +74,69 @@ const durationFindFun = async (duration, SelectDate) => {
     };
 };
 
-
 const getPagination = (page, size) => {
     page = parseInt(page) || 1;
     const pageSize = parseInt(size) || 10;
     const offset = (page - 1) * pageSize;
     return { limit: pageSize, offset: offset };
-}
-
-const generatePassword = (length = 12) => {
-  const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  const lower = 'abcdefghijklmnopqrstuvwxyz';
-  const numbers = '0123456789';
-  const special = '#?@$%&';
-  
-  let password = 
-    upper[Math.floor(Math.random() * upper.length)] +
-    lower[Math.floor(Math.random() * lower.length)] +
-    numbers[Math.floor(Math.random() * numbers.length)] +
-    special[Math.floor(Math.random() * special.length)];
-
-  const allChars = upper + lower + numbers + special;
-  for (let i = password.length; i < length; i++) {
-    password += allChars[Math.floor(Math.random() * allChars.length)];
-  }
-
-  password = password.split('').sort(() => 0.5 - Math.random()).join('');
-
-  return PasswordRegex.test(password) ? password : generatePassword(length);
 };
 
+const generatePassword = (length = 12) => {
+    const upper = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const lower = 'abcdefghijklmnopqrstuvwxyz';
+    const numbers = '0123456789';
+    const special = '#?@$%&';
+
+    let password =
+        upper[Math.floor(Math.random() * upper.length)] +
+        lower[Math.floor(Math.random() * lower.length)] +
+        numbers[Math.floor(Math.random() * numbers.length)] +
+        special[Math.floor(Math.random() * special.length)];
+
+    const allChars = upper + lower + numbers + special;
+    for (let i = password.length; i < length; i++) {
+        password += allChars[Math.floor(Math.random() * allChars.length)];
+    }
+
+    password = password.split('').sort(() => 0.5 - Math.random()).join('');
+
+    return PasswordRegex.test(password) ? password : generatePassword(length);
+};
+
+const defaultOrgSetAction = async (UserId, OrgUserId) => {
+    await OrgUsersModel.update({
+        DefaultOrg: false
+    }, {
+        where: {
+            UserId: UserId
+        }
+    });
+
+    await OrgUsersModel.update({
+        DefaultOrg: true
+    }, {
+        where: {
+            OrgUserId: OrgUserId
+        }
+    });
+
+    return true;
+};
+
+const orgSetAdminAction = async (BranchId, OrgId) => {
+    await OrgUsersModel.create({
+        UserId: 1,
+        RoleId: 1,
+        BranchId: BranchId,
+        OrgId: OrgId
+    },);
+    return true;
+};
 
 module.exports = {
     durationFindFun,
     getPagination,
-    generatePassword
+    generatePassword,
+    defaultOrgSetAction,
+    orgSetAdminAction,
 }
