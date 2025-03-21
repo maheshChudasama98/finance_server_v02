@@ -219,6 +219,8 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 
       if (Tags?.length > 0) {
         dataObject.Tags = Tags.join(",");
+      }else{
+        dataObject.Tags = null;
       }
 
       if (TransferToAccountId) {

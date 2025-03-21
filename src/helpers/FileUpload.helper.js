@@ -113,7 +113,7 @@ const FileUpload = async (payloadFile, uuid, rootFolder, oldFile ) => {
 
         return newFileName
 
-    } catch (error) {
+    } catch (error) {        
         return false
     }
 };
