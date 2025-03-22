@@ -103,7 +103,7 @@ const generatePassword = (length = 12) => {
     return PasswordRegex.test(password) ? password : generatePassword(length);
 };
 
-const defaultOrgSetAction = async (UserId, OrgUserId) => {
+const defaultOrgSetAction = async (UserId, BranchId) => {
     await OrgUsersModel.update({
         DefaultOrg: false
     }, {
@@ -116,7 +116,8 @@ const defaultOrgSetAction = async (UserId, OrgUserId) => {
         DefaultOrg: true
     }, {
         where: {
-            OrgUserId: OrgUserId
+            UserId: UserId,
+            BranchId: BranchId
         }
     });
 

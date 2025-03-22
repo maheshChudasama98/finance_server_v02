@@ -136,7 +136,7 @@ exports.AccountController = async (payloadUser, payloadBody) => {
             ],
             where: whereCondition,
             group: ["Date",],
-            order: [['Date', 'DESC']],
+            order: [['Date', 'ASC']],
             raw: true,
         });
 

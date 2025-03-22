@@ -82,10 +82,11 @@ exports.OrgModifyController = async (payloadUser, payloadBody, payloadFile) => {
                             isDeleted: false,
                             isActive: true
                         });
-                    };
+                    };					
                 };
 
-                const filter = roleList?.filter(item => item?.RoleName !== "Super Admin")
+                const filter = roleList?.filter(item => item?.RoleName !== "Super Admin");
+								
                 for (let index = 0; index < filter.length; index++) {
 
                     const element = filter[index];
@@ -1047,9 +1048,7 @@ exports.RoleListController = async (payloadUser, payloadBody) => {
 
 		if (payloadUser?.RoleId !== 1) {
 			whereCondition.RoleId = {[Op.not]: 1};
-		} else if (payloadUser?.RoleId !== 2) {
-			// whereCondition.RoleId = {[Op.in]: 1};
-		}
+		} 
 
 		const list = await RolesModel.findAll({
 			attributes: ["RoleId", "RoleName", "Description", "isActive", "createdAt", "updatedAt"],

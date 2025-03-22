@@ -28,7 +28,11 @@ app.use('/public', express.static(path.join(__dirname, 'public')));
 require('./src/api/models/index'); //  All Models and Database connection  
 require('./src/api/routers/index')(app); // All Router index
 
-// DefaultDatabaseAction();
+
+setTimeout(() => {
+    // DefaultDatabaseAction();
+    console.log('Executing task...'); 
+}, 2 * 60 * 1000);
 
 // ------------ ||  Server listen port  || ------------ //
 app.listen(port, error => {

@@ -11,7 +11,6 @@ module.exports = (sequelize, DataTypes) => {
         ModulesName: {
             type: DataTypes.STRING,
             allowNull: false,
-            unique: true
         },
         Description: {
             type: DataTypes.STRING(1000),

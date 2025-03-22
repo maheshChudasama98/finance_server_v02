@@ -582,9 +582,6 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
       raw: true,
     });
 
-    console.log(fetchList , "fetchList fetchList fetchList");
-    
-
     if (Action) {
       const totalCount = await TransactionsModel.count({
         where: whereCondition,

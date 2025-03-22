@@ -7,10 +7,11 @@ module.exports = (app) => {
     app.get("/api/user/info", TokenMiddleware, UserService.UserInfoService);
     app.post("/api/user/list", TokenMiddleware, UserService.UserListService);
     app.post("/api/user/modify", TokenMiddleware, UserService.UserModifyService);
-
     
+    app.get("/api/user/default", TokenMiddleware, UserService.DefaultBrachService);
+
     cron.schedule('* * * * *', () => {
         console.log('Running every 1 minute:', new Date().toISOString());
         // Your task here
-    });
+    });   
 };

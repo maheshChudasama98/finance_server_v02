@@ -1,14 +1,15 @@
-const {Op, Sequelize, where, UUID} = require("sequelize");
+const {Op, Sequelize, UUID, where} = require("sequelize");
 const {SUCCESS_CODE, SERVER_ERROR_CODE, BAD_REQUEST_CODE} = require("../constants/statusCode");
 const bcrypt = require("bcrypt");
 const {v4: uuidv4} = require("uuid");
 
-const {getPagination, durationFindFun, generatePassword} = require("../../helpers/Actions.helper");
+const {getPagination, generatePassword, defaultOrgSetAction} = require("../../helpers/Actions.helper");
 
 const db = require("../models/index");
 const {FileUpload} = require("../../helpers/FileUpload.helper");
 const {UserProfileImagePath, ProjectName, resetLink, superAdminRoleId} = require("../constants/constants");
 const {emailFormat} = require("../../helpers/Email.helper");
+const {UserBasedDefaultCategory} = require("./Basic.controller");
 const UserModel = db.UserModel;
 const OrgUsersModel = db.OrgUsersModel;
 const ModulesModel = db.ModulesModel;
@@ -97,8 +98,8 @@ exports.UserInfoController = async (payloadUser) => {
 				],
 				[
 					Sequelize.literal(`(
-                      SELECT JSON_ARRAYAGG(
-                          JSON_OBJECT(
+                      SELECT JSON_OBJECT(
+                              'OrgUserId', orgusers.OrgUserId,
                               'BranchId', branches.BranchId,
                               'BranchName', branches.BranchName,
                               'Description', branches.Description,
@@ -111,7 +112,6 @@ exports.UserInfoController = async (payloadUser) => {
                               'ImgPath', branches.ImgPath,
                               'createdAt', branches.createdAt
                           )
-                      )
                       FROM branches
                       WHERE branches.BranchId = (
                               SELECT BranchId 
@@ -154,6 +154,42 @@ exports.UserInfoController = async (payloadUser) => {
 			raw: true,
 		});
 
+		const UserInfo = await UserModel.findOne({
+			where: {
+				UserId: UserId,
+			},
+			attributes: [
+				"UserId",
+				"FirstName",
+				"LastName",
+				"AvatarName",
+				"Email",
+				"Mobile",
+				"ImgPath",
+				"Language",
+				[Sequelize.literal("CONCAT(FirstName, ' ', LastName)"), "FullName"],
+				[Sequelize.literal(`CASE  WHEN ImgPath IS NOT NULL THEN CONCAT('${UserProfileImagePath}','/', UUID, '/', ImgPath)  ELSE NULL  END`), "ImgPath"],
+				[
+					Sequelize.literal(`(
+                      SELECT JSON_ARRAYAGG(
+                          JSON_OBJECT(
+                              'OrgUserId', orgusers.OrgUserId,
+                              'BranchId', orgusers.BranchId,
+							  'OrgName', orgs.OrgName,
+							  'BranchName', branches.BranchName
+                          )
+                      )
+                      FROM orgusers 
+					  JOIN orgs ON orgs.OrgId = orgusers.OrgId
+					  JOIN branches ON branches.BranchId = orgusers.BranchId
+					  WHERE orgusers.UserId = users.UserId 
+                  )`),
+					"BranchesList",
+				],
+			],
+			raw: true,
+		});
+
 		return {
 			httpCode: SUCCESS_CODE,
 			result: {
@@ -169,6 +205,7 @@ exports.UserInfoController = async (payloadUser) => {
 						SelectOrg: UserDetails?.SelectOrg,
 					},
 					PermissionList,
+					UserInfo: UserInfo,
 				},
 			},
 		};
@@ -183,7 +220,7 @@ exports.UserInfoController = async (payloadUser) => {
 
 exports.UserListController = async (payloadUser, payloadBody) => {
 	try {
-		const {OrgId, BranchId, UserId} = payloadUser;
+		const {OrgId, BranchId, UserId, RoleId} = payloadUser;
 		const {Action, Page, PageSize, FilterBy, SearchKey} = payloadBody;
 
 		if (Action) {
@@ -206,6 +243,13 @@ exports.UserListController = async (payloadUser, payloadBody) => {
 			isDeleted: false,
 		};
 
+		if (RoleId !== superAdminRoleId) {
+			// whereCondition[Op.or] =[
+			// 	{ "$orgusers.OrgId": { [Op.eq]: OrgId } },
+			// 	{ "$orgusers.BranchId": { [Op.eq]: BranchId } },
+			// ]
+		}
+
 		const fetchList = await UserModel.findAll({
 			attributes: [
 				"UserId",
@@ -221,29 +265,33 @@ exports.UserListController = async (payloadUser, payloadBody) => {
 				[Sequelize.literal(`CASE  WHEN ImgPath IS NOT NULL THEN CONCAT('${UserProfileImagePath}','/', UUID, '/', ImgPath)  ELSE NULL  END`), "ImgPath"],
 				[
 					Sequelize.literal(`(
-              SELECT r.RoleName 
-              FROM roles r 
-              JOIN orgusers ou ON ou.RoleId = r.RoleId 
-              WHERE ou.OrgId = ${OrgId} 
-              AND ou.BranchId = ${BranchId}
-              AND ou.UserId = users.UserId
-              LIMIT 1
-            )`),
+              			SELECT r.RoleName  FROM roles r 
+              			JOIN orgusers ou ON ou.RoleId = r.RoleId 
+              			WHERE ou.OrgId = ${OrgId} 
+              			AND ou.BranchId = ${BranchId}
+              			AND ou.UserId = users.UserId
+              			LIMIT 1
+            		)`),
 					"RoleName",
 				],
 				[
 					Sequelize.literal(`(
-                SELECT r.RoleId 
-                FROM roles r 
-                JOIN orgusers ou ON ou.RoleId = r.RoleId 
-                WHERE ou.OrgId = ${OrgId} 
-                AND ou.BranchId = ${BranchId}
-                AND ou.UserId = users.UserId
-                LIMIT 1
-              )`),
+						SELECT r.RoleId  FROM roles r 
+                		JOIN orgusers ou ON ou.RoleId = r.RoleId 
+                		WHERE ou.OrgId = ${OrgId} 
+                		AND ou.BranchId = ${BranchId}
+                		AND ou.UserId = users.UserId
+                		LIMIT 1
+              			)`),
 					"RoleId",
 				],
 			],
+			include: [
+				{
+					model: OrgUsersModel,
+				},
+			],
+			group: ["UserId"],
 			where: whereCondition,
 			raw: true,
 		});
@@ -372,6 +420,8 @@ exports.UserModifyController = async (payloadUser, payloadBody, payloadFile) => 
 				RoleId: RoleId,
 				DefaultOrg: false,
 			});
+
+			await UserBasedDefaultCategory(NewUser?.UserId, OrgId, BranchId);
 
 			const emailDetails = {
 				to: UserEmail,
@@ -512,6 +562,31 @@ exports.UserRemoveController = async (payloadUser, payloadQuery) => {
 				}
 			);
 		}
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {
+				status: true,
+				message: "SUCCESS",
+			},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {
+				status: false,
+				message: error.message,
+			},
+		};
+	}
+};
+
+exports.DefaultBrachController = async (payloadUser, payloadQuery) => {
+	try {
+		const {OrgId, UserId, RoleId} = payloadUser;
+		const {BranchId} = payloadQuery;
+
+		await defaultOrgSetAction(UserId, BranchId);
 		return {
 			httpCode: SUCCESS_CODE,
 			result: {

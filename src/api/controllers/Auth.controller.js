@@ -137,7 +137,7 @@ exports.LoginController = async (payloadBody) => {
                             }
                         });
                     } else {
-                        await defaultOrgSetAction(TargetUser?.UserId, TargetUser?.OrgUserId)
+                        await defaultOrgSetAction(TargetUser?.UserId, TargetUser?.BranchId)
                     }
                 }
 
@@ -174,8 +174,6 @@ exports.LoginController = async (payloadBody) => {
                     resolve(tokenValue);
                 });
             });
-
-            console.log(token, "token");
 
             return ({
                 httpCode: SUCCESS_CODE,
@@ -221,8 +219,6 @@ exports.ForgotPasswordController = async (payloadBody) => {
             const min = 10000;
             const max = 99999;
             const optNumber = Math.floor(Math.random() * (max - min + 1)) + min;
-
-            console.log(TargetUser?.Email, "TargetUser?.Email TargetUser?.Email");
 
             const emailDetails = {
                 to: TargetUser?.Email,

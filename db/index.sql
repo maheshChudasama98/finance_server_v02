@@ -18,3 +18,6 @@ DROP INDEX `Email` ;
 ALTER TABLE `demo_test`.`modules` 
 ADD COLUMN `Icon` VARCHAR(255) NULL AFTER `Router`;
 
+
+ALTER TABLE `defaultdb`.`modules` 
+DROP INDEX `ModulesName`;
