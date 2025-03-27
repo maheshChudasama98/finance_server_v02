@@ -7,7 +7,7 @@ const {getPagination, generatePassword, defaultOrgSetAction} = require("../../he
 
 const db = require("../models/index");
 const {FileUpload} = require("../../helpers/FileUpload.helper");
-const {UserProfileImagePath, ProjectName, resetLink, superAdminRoleId} = require("../constants/constants");
+const {UserProfileImagePath, ProjectName, resetLink, superAdminRoleId, OrgImagePath, BranchImagePath} = require("../constants/constants");
 const {emailFormat} = require("../../helpers/Email.helper");
 const {UserBasedDefaultCategory} = require("./Basic.controller");
 const UserModel = db.UserModel;
@@ -35,7 +35,7 @@ exports.UserInfoController = async (payloadUser) => {
                               'OrgName', orgs.OrgName,
                               'Description', orgs.Description,
                               'UUID', orgs.UUID,
-                              'ImgPath', orgs.ImgPath,
+                              'ImgPath', CASE WHEN orgs.ImgPath IS NOT NULL THEN CONCAT('${OrgImagePath}','/', orgs.UUID, '/', orgs.ImgPath) ELSE NULL END,
                               'createdAt', orgs.createdAt
                           )
                       )
@@ -54,7 +54,7 @@ exports.UserInfoController = async (payloadUser) => {
                               'OrgName', orgs.OrgName,
                               'Description', orgs.Description,
                               'UUID', orgs.UUID,
-                              'ImgPath', orgs.ImgPath,
+                              'ImgPath', CASE WHEN orgs.ImgPath IS NOT NULL THEN CONCAT('${OrgImagePath}','/', orgs.UUID, '/', orgs.ImgPath) ELSE NULL END,
                               'createdAt', orgs.createdAt
                       )
                       FROM orgs
@@ -82,7 +82,7 @@ exports.UserInfoController = async (payloadUser) => {
                               'GstNumber', branches.GstNumber,
                               'Phone', branches.Phone,
                               'Email', branches.Email,
-                              'ImgPath', branches.ImgPath,
+                              'ImgPath', CASE WHEN branches.ImgPath IS NOT NULL THEN CONCAT('${BranchImagePath}','/', branches.UUID, '/', branches.ImgPath) ELSE NULL END,
                               'createdAt', branches.createdAt
                           )
                       )
@@ -109,7 +109,7 @@ exports.UserInfoController = async (payloadUser) => {
                               'GstNumber', branches.GstNumber,
                               'Phone', branches.Phone,
                               'Email', branches.Email,
-                              'ImgPath', branches.ImgPath,
+                              'ImgPath', CASE WHEN branches.ImgPath IS NOT NULL THEN CONCAT('${BranchImagePath}','/', branches.UUID, '/', branches.ImgPath) ELSE NULL END,
                               'createdAt', branches.createdAt
                           )
                       FROM branches
