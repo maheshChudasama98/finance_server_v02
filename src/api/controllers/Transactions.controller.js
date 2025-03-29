@@ -443,8 +443,11 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
       whereCondition.PartyId = { [Op.eq]: FilterBy?.PartyId };
     }
 
-    if (FilterBy?.Amounts && FilterBy?.Amounts?.length > 0) {
-      whereCondition.Amount = { [Op.in]: FilterBy?.Amounts };
+    if (FilterBy?.Amount && FilterBy?.Amount) {
+      whereCondition.Amount = { [Op.gte]: FilterBy?.Amount };
+    }
+    if (FilterBy?.Actions && FilterBy?.Actions?.length > 0) {
+      whereCondition.Action = { [Op.in]: FilterBy?.Actions };
     }
 
     const fetchList = await TransactionsModel.findAll({
