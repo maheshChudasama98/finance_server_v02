@@ -21,3 +21,12 @@ ADD COLUMN `Icon` VARCHAR(255) NULL AFTER `Router`;
 
 ALTER TABLE `defaultdb`.`modules` 
 DROP INDEX `ModulesName`;
+
+-------------------------------------- 1-04-2025
+ALTER TABLE `demo_test`.`roles` 
+ADD COLUMN `ParentNoteId` INT NULL AFTER `Icon`;
+
+
+ALTER TABLE `demo_test`.`roles` 
+ADD INDEX `roles_ibfk_2_idx` (`ParentNoteId` ASC) VISIBLE;
+;

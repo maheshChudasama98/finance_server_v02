@@ -2,6 +2,7 @@
 node_modules/
 public/
 .env
+.env.sample
 .env.simple
 .env.local
 .env.live

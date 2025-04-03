@@ -669,7 +669,6 @@ exports.TransactionFetchDataController = async (payloadUser, payloadBody) => {
         "isActive",
         "createdAt",
         "updatedAt",
-
         [
           Sequelize.literal(`(
                         SELECT JSON_ARRAYAGG(

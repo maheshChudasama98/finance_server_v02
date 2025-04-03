@@ -4,9 +4,9 @@ const {v4: uuidv4} = require("uuid");
 
 const db = require("../models/index");
 const {Op, Sequelize} = require("sequelize");
-const { FileUpload } = require("../../helpers/FileUpload.helper");
-const { OrgImagePath, BranchImagePath } = require("../constants/constants");
-const { modulesList, roleList } = require("../constants/defaultData");
+const {FileUpload} = require("../../helpers/FileUpload.helper");
+const {OrgImagePath, BranchImagePath, superAdminRoleId} = require("../constants/constants");
+const {modulesList, roleList} = require("../constants/defaultData");
 const OrgModel = db.OrgModel;
 const ModulesModel = db.ModulesModel;
 const BranchesModel = db.BranchesModel;
@@ -17,8 +17,8 @@ const OrgUsersModel = db.OrgUsersModel;
 // ------------------------ || Org Controllers || ------------------------ //
 
 exports.OrgModifyController = async (payloadUser, payloadBody, payloadFile) => {
-    try {
-        const { OrgId, OrgName, Description } = payloadBody;
+	try {
+		const {OrgId, OrgName, Description} = payloadBody;
 
 		const orgTarget = await OrgModel.findOne({
 			where: {OrgName: OrgName},
@@ -39,158 +39,150 @@ exports.OrgModifyController = async (payloadUser, payloadBody, payloadFile) => {
 					imagePath = await FileUpload(payloadFile?.ImgPath, uuid, OrgImagePath);
 				}
 
+				const NewOrg = await OrgModel.create({
+					OrgName: OrgName?.trim() || null,
+					Description: Description,
+					ImgPath: imagePath,
+					UUID: uuid,
+					isDeleted: false,
+					isActive: true,
+				});
 
-                const NewOrg = await OrgModel.create({
-                    OrgName: OrgName?.trim() || null,
-                    Description: Description,
-                    ImgPath: imagePath,
-                    UUID: uuid,
-                    isDeleted: false,
-                    isActive: true
-                });
+				const NewBranch = await BranchesModel.create({
+					BranchName: "Main Branch" || null,
+					Description: "This is main branch",
+					OrgId: NewOrg.OrgId,
+					UUID: uuidv4(),
+					isDeleted: false,
+					isActive: true,
+				});
 
-                const NewBranch = await BranchesModel.create({
-                    BranchName: "Main Branch" || null,
-                    Description: "This is main branch",
-                    OrgId: NewOrg.OrgId,
-                    UUID: uuidv4(),
-                    isDeleted: false,
-                    isActive: true
-                });
+				for (let index = 0; index < modulesList.length; index++) {
+					const element = modulesList[index];
 
-                for (let index = 0; index < modulesList.length; index++) {
+					const findModules = await ModulesModel.findOne({
+						where: {
+							ModulesName: element?.ModulesName,
+							OrgId: NewOrg?.OrgId,
+							BranchId: NewBranch?.BranchId,
+						},
+						raw: true,
+					});
 
-                    const element = modulesList[index];
+					if (!findModules?.ModulesId) {
+						await ModulesModel.create({
+							ModulesName: element?.ModulesName,
+							Description: element?.Description,
+							OrgId: NewOrg?.OrgId,
+							BranchId: NewBranch?.BranchId,
+							Icon: element?.Icon,
+							Router: element?.Router,
+							isDeleted: false,
+							isActive: true,
+						});
+					}
+				}
 
-                    const findModules = await ModulesModel.findOne({
-                        where: {
-                            ModulesName: element?.ModulesName,
-                            OrgId: NewOrg?.OrgId,
-                            BranchId: NewBranch?.BranchId,
-                        },
-                        raw: true
-                    });
+				const filter = roleList?.filter((item) => item?.RoleName !== "Super Admin");
 
-                    if (!findModules?.ModulesId) {
-                        await ModulesModel.create({
-                            ModulesName: element?.ModulesName,
-                            Description: element?.Description,
-                            OrgId: NewOrg?.OrgId,
-                            BranchId: NewBranch?.BranchId,
-                            Icon: element?.Icon,
-                            Router: element?.Router,
-                            isDeleted: false,
-                            isActive: true
-                        });
-                    };					
-                };
+				for (let index = 0; index < filter.length; index++) {
+					const element = filter[index];
 
-                const filter = roleList?.filter(item => item?.RoleName !== "Super Admin");
-								
-                for (let index = 0; index < filter.length; index++) {
+					const findRole = await RolesModel.findOne({
+						where: {
+							RoleName: element?.RoleName,
+							OrgId: NewOrg?.OrgId,
+							BranchId: NewBranch?.BranchId,
+						},
+						raw: true,
+					});
 
-                    const element = filter[index];
+					if (!findRole?.RoleId) {
+						const roleCreated = await RolesModel.create({
+							RoleName: element?.RoleName,
+							Description: element?.Description,
+							OrgId: NewOrg?.OrgId,
+							BranchId: NewBranch?.BranchId,
+							isDeleted: false,
+							isActive: true,
+						});
 
-                    const findRole = await RolesModel.findOne({
-                        where: {
-                            RoleName: element?.RoleName,
-                            OrgId: NewOrg?.OrgId,
-                            BranchId: NewBranch?.BranchId,
-                        },
-                        raw: true
-                    });
+						const listModules = await ModulesModel.findAll({
+							where: {
+								OrgId: NewOrg?.OrgId,
+							},
+							raw: true,
+						});
 
-                    if (!findRole?.RoleId) {
+						for (let index = 0; index < listModules.length; index++) {
+							const element = listModules[index];
 
-                        const roleCreated = await RolesModel.create({
-                            RoleName: element?.RoleName,
-                            Description: element?.Description,
-                            OrgId: NewOrg?.OrgId,
-                            BranchId: NewBranch?.BranchId,
-                            isDeleted: false,
-                            isActive: true
-                        });
+							await PermissionModel.create({
+								RoleId: roleCreated?.RoleId,
+								ModuleId: element?.ModulesId,
+								CanRead: true,
+								CanWrite: true,
+							});
+						}
+					}
+				}
 
-                        const listModules = await ModulesModel.findAll({
-                            where: {
-                                OrgId: NewOrg?.OrgId,
-                            }, raw: true
-                        });
+				await OrgUsersModel.create({
+					OrgId: NewOrg?.OrgId,
+					BranchId: NewBranch?.BranchId,
+					UserId: 1,
+					RoleId: 1,
+					isDeleted: false,
+					isActive: true,
+				});
 
-                        for (let index = 0; index < listModules.length; index++) {
+				return {
+					httpCode: SUCCESS_CODE,
+					result: {status: true, message: "SUCCESS"},
+				};
+			}
+		} else {
+			if (orgTarget?.OrgId && orgTarget?.OrgId != OrgId) {
+				return {
+					httpCode: SUCCESS_CODE,
+					result: {status: false, message: "DUPLICATE"},
+				};
+			} else {
+				let imagePath = orgTarget?.ImgPath;
 
-                            const element = listModules[index];
+				if (payloadFile) {
+					imagePath = await FileUpload(payloadFile?.ImgPath, orgTarget?.UUID, OrgImagePath, orgTarget?.ImgPath);
+				}
 
-                            await PermissionModel.create({
-                                RoleId: roleCreated?.RoleId,
-                                ModuleId: element?.ModulesId,
-                                CanRead: true,
-                                CanWrite: true
-                            });
-                        };
+				await OrgModel.update(
+					{
+						OrgName: OrgName?.trim() || null,
+						Description: Description,
+						ImgPath: imagePath,
+					},
+					{where: {OrgId: OrgId}}
+				);
 
-                    };
-                };
-
-                await OrgUsersModel.create({
-                    OrgId: NewOrg?.OrgId,
-                    BranchId: NewBranch?.BranchId,
-                    UserId: 1,
-                    RoleId: 1,
-                    isDeleted: false,
-                    isActive: true,
-                })
-
-                return ({
-                    httpCode: SUCCESS_CODE,
-                    result: { status: true, message: "SUCCESS" }
-                });
-            };
-
-        } else {
-
-            if (orgTarget?.OrgId && orgTarget?.OrgId != OrgId) {
-
-                return ({
-                    httpCode: SUCCESS_CODE,
-                    result: { status: false, message: "DUPLICATE" }
-                });
-
-            } else {
-
-                let imagePath = orgTarget?.ImgPath;
-
-                if (payloadFile) {
-                    imagePath = await FileUpload(payloadFile?.ImgPath, orgTarget?.UUID, OrgImagePath, orgTarget?.ImgPath);
-                };
-
-                await OrgModel.update({
-                    OrgName: OrgName?.trim() || null,
-                    Description: Description,
-                    ImgPath: imagePath,
-                }, { where: { OrgId: OrgId } });
-
-                return ({
-                    httpCode: SUCCESS_CODE,
-                    result: { status: true, message: "SUCCESS" }
-                });
-
-            };
-        };
-
-    } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
-        return ({
-            httpCode: SERVER_ERROR_CODE,
-            result: { status: false, message: error.message }
-        });
-    };
-
+				return {
+					httpCode: SUCCESS_CODE,
+					result: {status: true, message: "SUCCESS"},
+				};
+			}
+		}
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
 };
 
 exports.OrgListController = async (payloadUser, payloadBody) => {
 	try {
 		const {Action, Page, PageSize, FilterBy} = payloadBody;
+
+		console.log(payloadUser, "payloadBody");
 
 		if (Action) {
 			if (!Page || !PageSize) {
@@ -205,7 +197,13 @@ exports.OrgListController = async (payloadUser, payloadBody) => {
 			var {limit, offset} = getPagination(Page, PageSize);
 		}
 
-		const whereCondition = {isDeleted: false};
+		const whereCondition = {
+			isDeleted: false,
+		};
+
+		if (superAdminRoleId !== payloadUser?.UserId) {
+			whereCondition.OrgId = payloadUser?.OrgId 
+		}
 
 		if (FilterBy?.OrgName) {
 			whereCondition.OrgName = {[Op.like]: "%" + FilterBy?.OrgName + "%"};
@@ -478,8 +476,6 @@ exports.BranchModifyController = async (payloadUser, payloadBody, payloadFile) =
 exports.BranchListController = async (payloadUser, payloadBody) => {
 	try {
 		const {Action, Page, PageSize, FilterBy} = payloadBody;
-
-		
 
 		if (Action) {
 			if (!Page || !PageSize) {
@@ -1048,7 +1044,7 @@ exports.RoleListController = async (payloadUser, payloadBody) => {
 
 		if (payloadUser?.RoleId !== 1) {
 			whereCondition.RoleId = {[Op.not]: 1};
-		} 
+		}
 
 		const list = await RolesModel.findAll({
 			attributes: ["RoleId", "RoleName", "Description", "isActive", "createdAt", "updatedAt"],

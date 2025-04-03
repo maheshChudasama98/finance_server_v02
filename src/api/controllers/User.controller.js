@@ -243,6 +243,10 @@ exports.UserListController = async (payloadUser, payloadBody) => {
 			isDeleted: false,
 		};
 
+		// if (superAdminRoleId !== payloadUser?.UserId) {
+		// 	whereCondition.OrgId = payloadUser?.OrgId;
+		// }
+
 		if (RoleId !== superAdminRoleId) {
 			// whereCondition[Op.or] =[
 			// 	{ "$orgusers.OrgId": { [Op.eq]: OrgId } },

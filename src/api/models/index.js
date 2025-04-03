@@ -48,6 +48,9 @@ db.ModulesModel.belongsTo(db.ModulesModel, { foreignKey: 'ParentNoteId' });
 db.ModulesModel.hasMany(db.PermissionModel, { foreignKey: 'ModuleId' });  // One to Many;
 db.PermissionModel.belongsTo(db.ModulesModel, { foreignKey: 'ModuleId' });
 
+db.RolesModel.hasMany(db.RolesModel, { foreignKey: 'ParentNoteId' });  // Self Join;
+db.RolesModel.belongsTo(db.RolesModel, { foreignKey: 'ParentNoteId' });
+
 db.OrgModel.hasMany(db.RolesModel, { foreignKey: 'OrgId' });  // One to Many;
 db.RolesModel.belongsTo(db.OrgModel, { foreignKey: 'OrgId' });
 
