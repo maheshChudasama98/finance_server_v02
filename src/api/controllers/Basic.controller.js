@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 const {v4: uuidv4} = require("uuid");
 const db = require("../models/index");
 const {Op} = require("sequelize");
-const {defaultCategoryList, modulesList, roleList} = require("../constants/defaultData");
+const {defaultCategoryList, modulesList, roleList, emailList} = require("../constants/defaultData");
 
 const OrgModel = db.OrgModel;
 const RolesModel = db.RolesModel;
@@ -16,6 +16,7 @@ const UserModel = db.UserModel;
 const OrgUsersModel = db.OrgUsersModel;
 const CategoriesModel = db.CategoriesModel;
 const SubCategoriesModel = db.SubCategoriesModel;
+const EmailsmsModel = db.EmailsmsModel;
 
 exports.UserBasedDefaultCategory = async (UserId, OrgId, BranchId) => {
 	try {
@@ -220,6 +221,31 @@ exports.DefaultDatabaseAction = async () => {
 			.catch((error) => {
 				console.log(`\x1b[91m ${error} \x1b[91m`);
 			});
+	}
+	console.log("Default Org, Branch, Role, Modules and User Created Successfully");
+};
+
+exports.DefaultEmailSet = async () => {
+	for (let index = 0; index < emailList.length; index++) {
+		const element = emailList[index];
+
+		const findEmail = await EmailsmsModel.findOne({
+			where: {
+				Slug: element?.Slug,
+			},
+			raw: true,
+		});
+
+		if (!findEmail?.ContentId) {
+			await EmailsmsModel.create({
+				Type: element?.Type,
+				Title: element?.Title,
+				Subject: element?.Subject,
+				Content: element?.Content,
+				Slug: element?.Slug,
+				isDeleted: false,
+			});
+		}
 	}
 };
 

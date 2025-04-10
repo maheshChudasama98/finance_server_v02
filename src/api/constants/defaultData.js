@@ -500,3 +500,13 @@ module.exports.defaultCategoryList = [
 		],
 	},
 ];
+
+module.exports.emailList = [
+	{
+		Type: "email",
+		Title: "Server Restarted",
+		Subject: "Server Restarted",
+		Content: `<h2 style="color:#4CAF50;">Server Restarted</h2><p><strong>Time:</strong>{__RestartedTime__}</p><p><strong>Project:</strong>{__ProjectName__}</p><p><strong>Port:</strong>{__ServerPort__}</p><p><strong>Database:</strong>{__DatabaseName__}</p><p><strong>URl:</strong>{__DefaultUrl__}</p>`,
+		Slug: "server_restarted",
+	},
+];

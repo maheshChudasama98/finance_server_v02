@@ -1,6 +1,10 @@
 require("dotenv").config();
 const nodemailer = require("nodemailer");
+const path = require("path");
 const {ProjectName} = require("../api/constants/constants");
+
+const db = require("../api/models/index");
+const EmailsmsModel = db.EmailsmsModel;
 
 // const footer =
 //     `<table border="0" cellpadding="0" cellspacing="0" width="100%" margin-tob :10px; class="wrapperFooter">
@@ -266,9 +270,48 @@ const emailForgetPasswordSendOTP = async (details) => {
 		throw error;
 	}
 };
+// const serverRestartEmail = async () => {
+// 	try {
+// 		const mailDetails = await EmailsmsModel.findOne({
+// 			where: {
+// 				Slug: "server-restart",
+// 				isDeleted: false,
+// 			},
+// 			raw: true,
+// 		});
+//         const htmlEmployees = await getHtml(path.join(__dirname, "../templates/main.html"), {
+//             loginURL: process.env.APP_URL,
+//             logoURL: process.env.APP_LOGO_URL,
+//             content: emailContentEmployees,
+//         });
+        
+// 		const emailMessage = {
+// 			from: `${ProjectName} <${process.env.EMAIL_USER}>`,
+// 			to: `${process.env.MAIN_USER_EMAIL}`,
+// 			subject: mailDetails?.Subject,
+// 			html: `
+//             <div style="background-color: #fff; margin-ton: 10px ; width : 100%; border-radius: 8px;" >
+//                 <div style="max-width:600px ; margin:0 auto; border-color:#e5e5e5; border-style :solid ; border-width :0 1px 1px 1px;">
+//                     <div style="background-color: #4CAF50 ;font-size:1px;height:3px"> </div>
+//                         <div style="margin:50px 20px 50px 20px">
+//                             ${details?.description}
+//                         </div>
+//                     </div>
+//                 </div>
+//             </div>
+//             `,
+// 		};
+
+// 		return info.response;
+// 	} catch (error) {
+// 		console.log(`At email send error :- ${error}`);
+// 		throw error;
+// 	}
+// };
 
 module.exports = {
 	emailSendHelper,
 	emailFormat,
 	emailForgetPasswordSendOTP,
+	// serverRestartEmail,
 };

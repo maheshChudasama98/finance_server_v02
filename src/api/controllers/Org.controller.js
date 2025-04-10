@@ -13,6 +13,7 @@ const BranchesModel = db.BranchesModel;
 const RolesModel = db.RolesModel;
 const PermissionModel = db.PermissionModel;
 const OrgUsersModel = db.OrgUsersModel;
+const EmailsmsModel = db.EmailsmsModel;
 
 // ------------------------ || Org Controllers || ------------------------ //
 
@@ -202,7 +203,7 @@ exports.OrgListController = async (payloadUser, payloadBody) => {
 		};
 
 		if (superAdminRoleId !== payloadUser?.UserId) {
-			whereCondition.OrgId = payloadUser?.OrgId 
+			whereCondition.OrgId = payloadUser?.OrgId;
 		}
 
 		if (FilterBy?.OrgName) {
@@ -1315,6 +1316,152 @@ exports.PermissionModifyController = async (payloadUser, payloadBody) => {
 				message: "SUCCESS",
 			},
 		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {
+				status: false,
+				message: error.message,
+			},
+		};
+	}
+};
+
+// ------------------------ || Email Controllers || ------------------------ //
+
+exports.EmailModifyController = async (payloadUser, payloadBody) => {
+	try {
+		const {OrgId, BranchId} = payloadUser;
+		const {ContentId, Type, Title, Subject, Content, Slug} = payloadBody;
+
+		const target = await EmailsmsModel.findOne({
+			where: {
+				OrgId: OrgId,
+				BranchId: BranchId,
+				Slug: Slug,
+			},
+			raw: true,
+		});
+
+		if (!ContentId) {
+			if (target?.ContentId) {
+				return {
+					httpCode: SUCCESS_CODE,
+					result: {status: false, message: "DUPLICATE"},
+				};
+			} else {
+				await EmailsmsModel.create({
+					Type: Type?.trim() || null,
+					Title: Title?.trim() || null,
+					Subject: Subject?.trim() || null,
+					Content: Content,
+					Slug: Slug,
+					OrgId: OrgId,
+					BranchId: BranchId,
+				});
+
+				return {
+					httpCode: SUCCESS_CODE,
+					result: {status: true, message: "SUCCESS"},
+				};
+			}
+		} else {
+			if (target?.ContentId && target?.ContentId != ContentId) {
+				return {
+					httpCode: SUCCESS_CODE,
+					result: {status: false, message: "DUPLICATE"},
+				};
+			} else {
+				await EmailsmsModel.update(
+					{
+						Type: Type?.trim() || null,
+						Title: Title?.trim() || null,
+						Subject: Subject?.trim() || null,
+						Content: Content,
+					},
+					{where: {ContentId: ContentId}}
+				);
+
+				return {
+					httpCode: SUCCESS_CODE,
+					result: {status: true, message: "SUCCESS"},
+				};
+			}
+		}
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
+exports.EmailListController = async (payloadUser, payloadBody) => {
+	try {
+		const {Action, Page, PageSize, FilterBy} = payloadBody;
+		const {OrgId, BranchId} = payloadUser;
+
+		if (Action) {
+			if (!Page || !PageSize) {
+				return {
+					httpCode: BAD_REQUEST_CODE,
+					result: {
+						status: false,
+						message: "BAD_REQUEST_CODE",
+					},
+				};
+			}
+			var {limit, offset} = getPagination(Page, PageSize);
+		}
+
+		const whereCondition = {
+			isDeleted: false,
+			OrgId: OrgId,
+			BranchId: BranchId,
+		};
+
+		const list = await EmailsmsModel.findAll({
+			where: whereCondition,
+			limit: limit,
+			offset: offset,
+			order: [["createdAt", "DESC"]],
+			raw: true,
+		});
+
+		if (Action) {
+			const totalCount = await EmailsmsModel.count({
+				where: whereCondition,
+				distinct: true,
+				subQuery: false,
+			});
+
+			let totalPage = Math.ceil(totalCount / limit);
+
+			return {
+				httpCode: SUCCESS_CODE,
+				result: {
+					status: true,
+					message: "SUCCESS",
+					data: {
+						list: list,
+						totalRecords: totalCount,
+						totalPages: totalPage,
+						currentPage: parseInt(Page),
+					},
+				},
+			};
+		} else {
+			return {
+				httpCode: SUCCESS_CODE,
+				result: {
+					status: true,
+					message: "SUCCESS",
+					data: {list: list},
+				},
+			};
+		}
 	} catch (error) {
 		console.log(`\x1b[91m ${error} \x1b[91m`);
 		return {

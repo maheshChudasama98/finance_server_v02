@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
 
-    const ModelTable = sequelize.define('kn_Tasks', {
+    const ModelTable = sequelize.define('kn_tasks', {
         TaskId: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
@@ -49,7 +49,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
         },
     }, {
-        modelName: 'kn_Tasks',
+        modelName: 'kn_tasks',
         initialAutoIncrement: 1,
     });
 

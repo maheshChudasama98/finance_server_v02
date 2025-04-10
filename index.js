@@ -1,7 +1,6 @@
 // ------------ ||  Express package  || ------------ //
 require("./src/helpers/EnvCheck.helper")(process, process.argv[2]);
 
-// dotenv package need for access .env file
 require("dotenv").config();
 const express = require("express");
 const app = express();
@@ -10,9 +9,7 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const fileUpload = require("express-fileupload");
 const path = require("path");
-const fs = require("fs");
-
-// --------------------------------------------------------------------------
+const {DefaultDatabaseAction, DefaultEmailSet} = require("./src/api/controllers/Basic.controller");
 
 // --------------------------------------------------------------------------
 
@@ -33,9 +30,10 @@ app.use("/public", express.static(path.join(__dirname, "public")));
 require("./src/api/models/index"); //  All Models and Database connection
 require("./src/api/routers/index")(app); // All Router index
 
-setTimeout(() => {
-	// DefaultDatabaseAction();
+setTimeout(async () => {
 	console.log("Executing task...");
+	// await  DefaultDatabaseAction();
+	await DefaultEmailSet();
 }, 2 * 60 * 1000);
 
 // ------------ ||  Server listen port  || ------------ //
