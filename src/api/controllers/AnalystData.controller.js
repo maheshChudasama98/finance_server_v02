@@ -534,11 +534,11 @@ exports.DataFollController = async (payloadUser, payloadBody) => {
 			OrgId: OrgId,
 			BranchId: BranchId,
 			isDeleted: false,
-			Action: {[Op.in]: ["In", "Out"]},
+			// Action: {[Op.in]: ["In", "Out" ,  "Investment"]},
 		};
 
 		let timeDurationFn;
-		let typeObject = ["In", "Out"];
+		let typeObject = ["In", "Out", "Investment"];
 
 		if (Type === "Party") {
 			typeObject = ["Credit", "Debit"];
@@ -565,6 +565,7 @@ exports.DataFollController = async (payloadUser, payloadBody) => {
 				[timeDurationFn, "duration"],
 				[fn("SUM", literal(`CASE WHEN Action = '${typeObject[0]}' THEN Amount ELSE 0 END`)), "totalIn"],
 				[fn("SUM", literal(`CASE WHEN Action = '${typeObject[1]}' THEN Amount ELSE 0 END`)), "totalOut"],
+				[fn("SUM", literal(`CASE WHEN Action = '${typeObject[2]}' THEN Amount ELSE 0 END`)), "totalInvestment"],
 			],
 			where: whereCondition,
 			group: [fn(TimeDuration, col("Date"))],
@@ -574,15 +575,18 @@ exports.DataFollController = async (payloadUser, payloadBody) => {
 
 		let cumulativeTotalIn = 0;
 		let cumulativeTotalOut = 0;
+		let cumulativeTotalInvestment = 0;
 
 		const updatedResults = results.map((row, index) => {
 			cumulativeTotalIn += parseFloat(row.totalIn);
 			cumulativeTotalOut += parseFloat(row.totalOut);
+			cumulativeTotalInvestment += parseFloat(row.totalInvestment);
 
 			return {
 				duration: row.duration,
 				totalIn: cumulativeTotalIn.toFixed(2),
 				totalOut: cumulativeTotalOut.toFixed(2),
+				totalInvestment: cumulativeTotalInvestment.toFixed(2),
 			};
 		});
 
