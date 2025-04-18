@@ -32,8 +32,8 @@ require("./src/api/routers/index")(app); // All Router index
 
 setTimeout(async () => {
 	console.log("Executing task...");
-	// await  DefaultDatabaseAction();
 	await DefaultEmailSet();
+	// await  DefaultDatabaseAction();
 }, 2 * 60 * 1000);
 
 // ------------ ||  Server listen port  || ------------ //
