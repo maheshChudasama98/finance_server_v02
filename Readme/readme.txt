@@ -38,7 +38,7 @@ as like Categories
 
 // Dashboard 
 
-Total - Cash ()
+Total - Cash () 
 Total - On Head Amount ()
 Total - 
 
@@ -59,3 +59,14 @@ graph cash flow like (in out) base on last 30 day update
 Add one more table to goals it base set limit or may be set like i want to get some
 
 Add notepade to save soming to write it uses can create multi pal
+
+
+---------------------------------------------------------------------
+Apr-21-2024
+
+Categories base find (Weeks,Months,Years) base which get high for (IN , OUT)
+Sub-Categories base find (Weeks,Months,Years) base which get high for (IN , OUT)
+
+Find-out for last (week,month, years) and between gap (IN , OUT), amount and PR(%)
+  
+---------------------------------------------------------------------

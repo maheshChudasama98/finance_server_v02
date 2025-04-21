@@ -26,9 +26,11 @@ exports.FinanceYearController = async (payloadUser, payloadBody) => {
 
 		const {StartDate, EndDate} = await durationFindFun("This_Year");
 		const lastYear = await durationFindFun("Last_Year");
+		const lastMonth = await durationFindFun("Last_Month");
+		const thisMonth = await durationFindFun("This_Month");
 		whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 
-		const results = await TransactionsModel.findAll({
+		const results = await TransactionsModel.findOne({
 			attributes: [
 				[fn("YEAR", col("Date")), "duration"],
 				[fn("SUM", literal(`CASE WHEN Action = 'In' THEN Amount ELSE 0 END`)), "totalIn"],
@@ -40,11 +42,10 @@ exports.FinanceYearController = async (payloadUser, payloadBody) => {
 			where: whereCondition,
 			group: [fn("YEAR", col("Date"))],
 			order: [[fn("YEAR", col("Date")), "ASC"]],
-			// limit: 1,
 			raw: true,
 		});
 
-		const lastYearData = await TransactionsModel.findAll({
+		const lastYearData = await TransactionsModel.findOne({
 			attributes: [
 				[fn("YEAR", col("Date")), "duration"],
 				[fn("SUM", literal(`CASE WHEN Action = 'In' THEN Amount ELSE 0 END`)), "totalIn"],
@@ -59,7 +60,44 @@ exports.FinanceYearController = async (payloadUser, payloadBody) => {
 			},
 			group: [fn("YEAR", col("Date"))],
 			order: [[fn("YEAR", col("Date")), "ASC"]],
-			// limit: 1,
+			raw: true,
+		});
+
+		const thisMonthData = await TransactionsModel.findOne({
+			attributes: [
+				[fn("MONTHNAME", col("Date")), "duration"],
+
+				// [fn("MONTH", col("Date")), "duration"],
+				[fn("SUM", literal(`CASE WHEN Action = 'In' THEN Amount ELSE 0 END`)), "totalIn"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Out' THEN Amount ELSE 0 END`)), "totalOut"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END`)), "totalCredit"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END`)), "totalDebit"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END`)), "totalInvestment"],
+			],
+			where: {
+				...whereCondition,
+				Date: {[Op.between]: [thisMonth?.StartDate, thisMonth?.EndDate]},
+			},
+			group: [fn("MONTH", col("Date"))],
+			order: [[fn("MONTH", col("Date")), "ASC"]],
+			raw: true,
+		});
+
+		const lastMonthData = await TransactionsModel.findOne({
+			attributes: [
+				[fn("MONTHNAME", col("Date")), "duration"],
+				[fn("SUM", literal(`CASE WHEN Action = 'In' THEN Amount ELSE 0 END`)), "totalIn"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Out' THEN Amount ELSE 0 END`)), "totalOut"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END`)), "totalCredit"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END`)), "totalDebit"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END`)), "totalInvestment"],
+			],
+			where: {
+				...whereCondition,
+				Date: {[Op.between]: [lastMonth?.StartDate, lastMonth?.EndDate]},
+			},
+			group: [fn("MONTH", col("Date"))],
+			order: [[fn("MONTH", col("Date")), "ASC"]],
 			raw: true,
 		});
 
@@ -118,8 +156,10 @@ exports.FinanceYearController = async (payloadUser, payloadBody) => {
 				status: true,
 				message: "SUCCESS",
 				data: {
-					currentYear: results[0],
-					lastYear: lastYearData[0] || {},
+					currentYear: results || {},
+					lastYear: lastYearData || {},
+					currentMonth: thisMonthData,
+					lastMonthData: lastMonthData,
 					monthBase: monthBase,
 				},
 			},
@@ -315,7 +355,6 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 		};
 
 		let timeDurationFn;
-		let timeDurationKey;
 
 		if (TimeDuration === "WEEK") {
 			timeDurationFn = fn("CONCAT", "Week-", fn("WEEK", col("Date")));
@@ -349,8 +388,8 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 			where: whereCondition,
 			group: [fn(TimeDuration, col("Date")), "CategoryId"],
 			order: [
-				[fn(TimeDuration, col("Date")), "ASC"],
-				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "DESC"],
+				[fn(TimeDuration, col("Date")), "DESC"],
+				// [fn("SUM", literal("CASE WHEN Action = 'Out' THEN Amount ELSE 0 END")), "DESC"],
 			],
 			raw: true,
 		});
@@ -363,30 +402,33 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 				acc[duration] = {duration, durationKey, topTenIn: [], topTenOut: []};
 			}
 
-			acc[duration].topTenIn.push({
-				CategoryId: row.CategoryId,
-				CategoryName: row.CategoryName,
-				Icon: row.Icon,
-				Color: row.Color,
-				totalIn: parseFloat(row.totalIn) || 0,
-			});
+			if (row.totalIn > 0) {
+				acc[duration].topTenIn.push({
+					CategoryId: row.CategoryId,
+					CategoryName: row.CategoryName,
+					Icon: row.Icon,
+					Color: row.Color,
+					totalIn: parseFloat(row.totalIn) || 0,
+				});
+			}
 
-			acc[duration].topTenOut.push({
-				CategoryId: row.CategoryId,
-				CategoryName: row.CategoryName,
-				Icon: row.Icon,
-				Color: row.Color,
-				totalOut: parseFloat(row.TotalOut) || 0,
-			});
-
+			if (row.totalOut > 0) {
+				acc[duration].topTenOut.push({
+					CategoryId: row.CategoryId,
+					CategoryName: row.CategoryName,
+					Icon: row.Icon,
+					Color: row.Color,
+					totalOut: parseFloat(row.totalOut) || 0,
+				});
+			}
 			return acc;
 		}, {});
 
 		const fetchList = Object.values(groupedByMonth).map((monthData) => ({
 			duration: monthData.duration,
 			durationKey: monthData.durationKey,
-			topTenIn: monthData.topTenIn.slice(0, FilterBy?.limit || 10),
-			topTenOut: monthData.topTenOut.slice(0, FilterBy?.limit || 10),
+			topTenIn: monthData.topTenIn.sort((a, b) => b.totalIn - a.totalIn).slice(0, FilterBy?.limit || 10),
+			topTenOut: monthData.topTenOut.sort((a, b) => b.totalOut - a.totalOut).slice(0, FilterBy?.limit || 10),
 		}));
 
 		return {
@@ -456,10 +498,7 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 			],
 			where: whereCondition,
 			group: [fn(TimeDuration, col("Date")), "SubCategoryId"],
-			order: [
-				[fn(TimeDuration, col("Date")), "ASC"],
-				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "DESC"],
-			],
+			order: [[fn(TimeDuration, col("Date")), "DESC"]],
 			raw: true,
 		});
 
@@ -471,21 +510,25 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 				acc[duration] = {duration, durationKey, topTenIn: [], topTenOut: []};
 			}
 
-			acc[duration].topTenIn.push({
-				SubCategoryId: row.SubCategoryId,
-				SubCategoryName: row.SubCategoryName,
-				Icon: row.Icon,
-				Color: row.Color,
-				totalIn: parseFloat(row.totalIn) || 0,
-			});
+			if (row.totalIn > 0) {
+				acc[duration].topTenIn.push({
+					SubCategoryId: row.SubCategoryId,
+					SubCategoryName: row.SubCategoryName,
+					Icon: row.Icon,
+					Color: row.Color,
+					totalIn: parseFloat(row.totalIn) || 0,
+				});
+			}
 
-			acc[duration].topTenOut.push({
-				SubCategoryId: row.SubCategoryId,
-				SubCategoryName: row.SubCategoryName,
-				Icon: row.Icon,
-				Color: row.Color,
-				totalOut: parseFloat(row.totalOut) || 0,
-			});
+			if (row.totalOut > 0) {
+				acc[duration].topTenOut.push({
+					SubCategoryId: row.SubCategoryId,
+					SubCategoryName: row.SubCategoryName,
+					Icon: row.Icon,
+					Color: row.Color,
+					totalOut: parseFloat(row.totalOut) || 0,
+				});
+			}
 
 			return acc;
 		}, {});
@@ -493,8 +536,8 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 		const fetchList = Object.values(groupedByMonth).map((monthData) => ({
 			duration: monthData.duration,
 			durationKey: monthData.durationKey,
-			topTenIn: monthData.topTenIn.slice(0, 10),
-			topTenOut: monthData.topTenOut.slice(0, 10),
+			topTenIn: monthData.topTenIn.sort((a, b) => b.totalIn - a.totalIn).slice(0, FilterBy?.limit || 10),
+			topTenOut: monthData.topTenOut.sort((a, b) => b.totalOut - a.totalOut).slice(0, FilterBy?.limit || 10),
 		}));
 
 		return {
