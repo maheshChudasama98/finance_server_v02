@@ -29,9 +29,9 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: "Rs",
         },
         AmountHide:{
-            type: DataTypes.STRING(100),
-            allowNull: false,
-            defaultValue: "false",
+            type: DataTypes.BOOLEAN,
+            allowNull: true,
+            defaultValue: false,
         }
     }, {
         modelName: 'setting',
