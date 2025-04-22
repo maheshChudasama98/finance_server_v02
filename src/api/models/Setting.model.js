@@ -1,7 +1,7 @@
 
 module.exports = (sequelize, DataTypes) => {
 
-    const ModelTable = sequelize.define('setting', {
+    const ModelTable = sequelize.define('settings', {
         SettingId: {
             type: DataTypes.INTEGER,
             autoIncrement: true,
@@ -12,26 +12,32 @@ module.exports = (sequelize, DataTypes) => {
         UsedBy: {
             type: DataTypes.INTEGER,
             allowNull: false,
+            unique: true
+        },
+        DefaultTimeFrame: {
+            type: DataTypes.STRING(100),
+            allowNull: false,
+            defaultValue: "MONTH",
         },
         DefaultDuration: {
-            type: DataTypes.STRING(100),
+            type: DataTypes.STRING,
             allowNull: false,
             defaultValue: "Last_Thirty_Days",
         },
-        DefaultFormat: {
+        DefaultDateFormat: {
             type: DataTypes.STRING(100),
             allowNull: false,
-            defaultValue: "Monthly",
+            defaultValue: "DD/MM/YYYY",
         },
         DefaultCurrency: {
             type: DataTypes.STRING(100),
             allowNull: false,
-            defaultValue: "Rs",
+            defaultValue: "INR",
         },
         AmountHide:{
             type: DataTypes.BOOLEAN,
             allowNull: true,
-            defaultValue: false,
+            defaultValue: true,
         }
     }, {
         modelName: 'setting',

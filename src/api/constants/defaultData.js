@@ -90,6 +90,12 @@ module.exports.modulesList = [
 		Router: "/users",
 		Icon: "fa-solid fa-user",
 	},
+	{
+		ModulesName: "Setting",
+		Description: "Manage Setting ",
+		Router: "/setting",
+		Icon: "fa-solid fa-cog",
+	},
 ];
 
 module.exports.defaultCategoryList = [

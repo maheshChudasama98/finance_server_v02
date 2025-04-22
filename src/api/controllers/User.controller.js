@@ -14,6 +14,7 @@ const UserModel = db.UserModel;
 const OrgUsersModel = db.OrgUsersModel;
 const ModulesModel = db.ModulesModel;
 const PermissionModel = db.PermissionModel;
+const SettingModel = db.SettingModel;
 
 exports.UserInfoController = async (payloadUser) => {
 	try {
@@ -123,7 +124,7 @@ exports.UserInfoController = async (payloadUser) => {
                           )
                   )`),
 					"SelectBranch",
-				],
+				]
 			],
 			where: {
 				UserId: UserId,
@@ -167,6 +168,11 @@ exports.UserInfoController = async (payloadUser) => {
 				"Mobile",
 				"ImgPath",
 				"Language",
+				[Sequelize.col("setting.DefaultTimeFrame"), "DefaultTimeFrame"],
+				[Sequelize.col("setting.DefaultDuration"), "DefaultDuration"],
+				[Sequelize.col("setting.DefaultDateFormat"), "DefaultDateFormat"],
+				[Sequelize.col("setting.DefaultCurrency"), "DefaultCurrency"],
+				[Sequelize.col("setting.AmountHide"), "AmountHide"],
 				[Sequelize.literal("CONCAT(FirstName, ' ', LastName)"), "FullName"],
 				[Sequelize.literal(`CASE  WHEN ImgPath IS NOT NULL THEN CONCAT('${UserProfileImagePath}','/', UUID, '/', ImgPath)  ELSE NULL  END`), "ImgPath"],
 				[
@@ -186,6 +192,12 @@ exports.UserInfoController = async (payloadUser) => {
                   )`),
 					"BranchesList",
 				],
+			],
+			include: [
+				{
+					model: SettingModel,
+					attributes: [],
+				},
 			],
 			raw: true,
 		});
@@ -598,6 +610,103 @@ exports.DefaultBrachController = async (payloadUser, payloadQuery) => {
 				message: "SUCCESS",
 			},
 		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {
+				status: false,
+				message: error.message,
+			},
+		};
+	}
+};
+
+exports.SettingGetController = async (payloadUser) => {
+	try {
+		const {UserId} = payloadUser;
+
+		const data = await SettingModel.findOne({
+			where: {
+				UsedBy: UserId,
+			},
+			raw: true,
+		});
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {
+				status: true,
+				message: "SUCCESS",
+				data: data,
+			},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {
+				status: false,
+				message: error.message,
+			},
+		};
+	}
+};
+
+exports.SettingModifyController = async (payloadUser, payloadBody) => {
+	try {
+		let {UserId} = payloadUser;
+
+		const {DefaultTimeFrame, DefaultDuration, DefaultDateFormat, DefaultCurrency, AmountHide} = payloadBody;
+
+		if (!UserId) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {status: false, message: "BAD_REQUEST_CODE"},
+			};
+		}
+
+		const target = await SettingModel.findOne({
+			where: {
+				UsedBy: UserId,
+			},
+			raw: true,
+		});
+
+		if (!target?.SettingId) {
+			await SettingModel.create({
+				DefaultTimeFrame,
+				DefaultDuration,
+				DefaultDateFormat,
+				DefaultCurrency,
+				AmountHide: AmountHide ? 1 : 0,
+				UsedBy: UserId,
+			});
+
+			return {
+				httpCode: SUCCESS_CODE,
+				result: {status: true, message: "SUCCESS"},
+			};
+		} else {
+			await SettingModel.update(
+				{
+					DefaultTimeFrame,
+					DefaultDuration,
+					DefaultDateFormat,
+					DefaultCurrency,
+					AmountHide: AmountHide ? 1 : 0,
+				},
+				{
+					where: {
+						UsedBy: UserId,
+					},
+				}
+			);
+
+			return {
+				httpCode: SUCCESS_CODE,
+				result: {status: true, message: "SUCCESS"},
+			};
+		}
 	} catch (error) {
 		console.log(`\x1b[91m ${error} \x1b[91m`);
 		return {

@@ -1,12 +1,12 @@
 SET GLOBAL  sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''));
 
 
-ALTER TABLE `demo_test`.`fn_accounts` 
+ALTER TABLE `fv2`.`fn_accounts` 
 ADD COLUMN `MaxAmount` DECIMAL(10,2) NULL AFTER `MinAmount`,
-CHANGE COLUMN `MinAmount` `MinAmount` DECIMAL(10,2) NULL DEFAULT '0.00' ;
+CHANGE COLUMN `MinAmount` `MinAmount` DECIMAL(10,2) NULL DEFAULT '0.00' ; 
 
 
-ALTER TABLE `demo_test`.`fn_parties` 
+ALTER TABLE `fv2`.`fn_parties` 
 ADD COLUMN `MaxAmount` DECIMAL(10,2) NULL AFTER `MinAmount`,
 CHANGE COLUMN `MinAmount` `MinAmount` DECIMAL(10,2) NULL DEFAULT '0.00' ;
 
@@ -22,11 +22,12 @@ ADD COLUMN `Icon` VARCHAR(255) NULL AFTER `Router`;
 ALTER TABLE `defaultdb`.`modules` 
 DROP INDEX `ModulesName`;
 
--------------------------------------- 1-04-2025
 ALTER TABLE `demo_test`.`roles` 
 ADD COLUMN `ParentNoteId` INT NULL AFTER `Icon`;
 
 
 ALTER TABLE `demo_test`.`roles` 
 ADD INDEX `roles_ibfk_2_idx` (`ParentNoteId` ASC) VISIBLE;
-;
+
+-------------------------------------- 1-04-2025 ( live in done)
+
