@@ -669,7 +669,7 @@ exports.LabelsFetchListController = async (payloadUser, payloadBody) => {
       where: whereCondition,
       limit: limit,
       offset: offset,
-      order: [["createdAt", "DESC"]],
+      order: [["LabelName", "DESC"]],
       raw: true,
     });
 
