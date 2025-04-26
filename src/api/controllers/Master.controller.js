@@ -817,7 +817,7 @@ exports.LabelActionController = async (payloadUser, payloadQuery) => {
     if (isDeleted == true || isDeleted == false) {
       const findRecode = await TransactionsModel.findOne({
         where: {
-          LabelId: LabelId,
+          Tags: { [Op.like] : "%" + LabelId + "%"},
           isDeleted: false,
         },
         raw: true,
@@ -826,7 +826,7 @@ exports.LabelActionController = async (payloadUser, payloadQuery) => {
       if (findRecode?.TransactionId) {
         return {
           httpCode: SUCCESS_CODE,
-          result: { status: true, message: "CONNECTED_STRING" },
+          result: { status: false, message: "CONNECTED_STRING" },
         };
       }
 
@@ -1150,7 +1150,7 @@ exports.AccountActionController = async (payloadUser, payloadQuery) => {
       if (findRecode?.TransactionId) {
         return {
           httpCode: SUCCESS_CODE,
-          result: { status: true, message: "CONNECTED_STRING" },
+          result: { status: false, message: "CONNECTED_STRING" },
         };
       }
 

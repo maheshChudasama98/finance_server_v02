@@ -9,6 +9,7 @@ module.exports.ENGLISH = {
     EMAIL_SEND_SUCCESS: "Send mail is successful!",
     EMAIL_SEND_ERROR: "mail sending some error !",
     BAD_REQUEST_CODE: "Bad request",
+    CONNECTED_STRING: "You can't delete this item as it is connected",
 
     // Auth controller message
     LOGIN_SUCCESS: "Login successful",
