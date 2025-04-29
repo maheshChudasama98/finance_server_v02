@@ -99,25 +99,33 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					break;
 			}
 
-			const created = await TransactionsModel.create(dataObject);
-
 			await AccountsModel.update({CurrentAmount: accountUpdateString}, {where: {AccountId: AccountId}});
+
+			const updatedAccount = await AccountsModel.findOne({where: {AccountId: AccountId}, raw: true});
+			dataObject.AccountBalance = updatedAccount?.CurrentAmount;
+
+			if (flagParty) {
+				await PartiesModel.update({CurrentAmount: transferUpdateString}, {where: {PartyId: PartyId}});
+				const updatedParty = await PartiesModel.findOne({where: {PartyId: PartyId}});
+				dataObject.PartyBalance = updatedParty?.CurrentAmount;
+			}
+
+			const created = await TransactionsModel.create(dataObject);
 
 			if (flagTransfer) {
 				await AccountsModel.update({CurrentAmount: transferUpdateString}, {where: {AccountId: TransferToAccountId}});
+				const updatedAccount = await AccountsModel.findOne({where: {AccountId: AccountId}, raw: true});
+				dataObject.AccountBalance = updatedAccount?.CurrentAmount;
 
 				await TransactionsModel.create({
 					...dataObject,
 					Action: "To",
 					AccountAmount: Amount,
 					AccountId: TransferToAccountId,
+					AccountBalance :dataObject.AccountBalance,
 					TransferToAccountId: AccountId,
 					ParentTransactionId: created?.TransactionId,
 				});
-			}
-
-			if (flagParty) {
-				await PartiesModel.update({CurrentAmount: transferUpdateString}, {where: {PartyId: PartyId}});
 			}
 
 			return {

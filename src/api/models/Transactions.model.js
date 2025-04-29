@@ -45,6 +45,12 @@ module.exports = (sequelize, DataTypes) => {
         PartyAmount: {
             type: DataTypes.DECIMAL(10, 2),
         },
+        AccountBalance: {
+            type: DataTypes.DECIMAL(10, 2),
+        },
+        PartyBalance: {
+            type: DataTypes.DECIMAL(10, 2),
+        },
         Description: {
             type: DataTypes.STRING(1000)
         },

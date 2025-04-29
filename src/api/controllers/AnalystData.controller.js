@@ -201,7 +201,7 @@ exports.AccountController = async (payloadUser, payloadBody) => {
 		};
 
 		if (Duration) {
-			const {StartDate, EndDate} = await durationFindFun(Duration);
+			const {StartDate, EndDate} = await durationFindFun(Duration || "Last_Year");
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		}
 
@@ -298,6 +298,14 @@ exports.AccountController = async (payloadUser, payloadBody) => {
 			order: [["Date", "ASC"]],
 			raw: true,
 		});
+
+		let totalCount = 0;
+
+		for (let index = 0; index < graphList.length; index++) {
+			const element = graphList[index];
+			totalCount = totalCount + Number(element?.Count);
+			element.totalCount = totalCount;
+		}
 
 		if (Action) {
 			const totalCount = await TransactionsModel.count({

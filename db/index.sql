@@ -29,5 +29,10 @@ ADD COLUMN `ParentNoteId` INT NULL AFTER `Icon`;
 ALTER TABLE `demo_test`.`roles` 
 ADD INDEX `roles_ibfk_2_idx` (`ParentNoteId` ASC) VISIBLE;
 
--------------------------------------- 1-04-2025 ( live in done)
+-------------------------------------- 1-04-2025 ( live in done )
+
+ALTER TABLE `defaultdb`.`fn_transactions` 
+ADD COLUMN `AccountBalance` DECIMAL(10,2) NULL DEFAULT NULL AFTER `PartyAmount`,
+ADD COLUMN `PartyBalance` DECIMAL(10,2) NULL DEFAULT NULL AFTER `AccountBalance`;
+
 
