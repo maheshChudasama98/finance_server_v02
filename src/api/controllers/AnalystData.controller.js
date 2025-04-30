@@ -770,3 +770,285 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 		};
 	}
 };
+
+const getTotals = async (startDate, endDate, whereCondition) => {
+	
+	const results = await TransactionsModel.findAll({
+		attributes: ["Action", [Sequelize.fn("SUM", Sequelize.col("AccountAmount")), "TotalAmount"]],
+		where: {
+			...whereCondition,
+			Date: {[Op.between]: [startDate, endDate]},
+		},
+		group: ["Action"],
+		raw: true,
+	});
+
+	const totals = {
+		In: 0,
+		Out: 0,
+		From: 0,
+		Investment: 0,
+		Credit: 0,
+		Debit: 0,
+		To: 0,
+	};
+
+	results.forEach((row) => {
+		if (totals[row.Action] !== undefined) {
+			totals[row.Action] = parseFloat(row.TotalAmount || 0);
+		}
+	});
+
+	return totals;
+};
+
+exports.AnalystController = async (payloadUser, payloadBody) => {
+	try {
+		let {OrgId, BranchId, UserId} = payloadUser;
+		const {Action, Page, PageSize, FilterBy, SearchKey, AccountId, PartyId, CategoryId, SubCategoryId, Duration} = payloadBody;
+
+		if (Action) {
+			if (!Page || !PageSize) {
+				return {
+					httpCode: BAD_REQUEST_CODE,
+					result: {
+						status: false,
+						message: "BAD_REQUEST_CODE",
+					},
+				};
+			}
+
+			var {limit, offset} = getPagination(Page, PageSize);
+		}
+
+		const whereCondition = {
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+		};
+
+		if (Duration) {
+			const {StartDate, EndDate} = await durationFindFun(Duration);
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		}
+
+		if (AccountId) {
+			whereCondition.AccountId = AccountId;
+		}
+
+		if (PartyId) {
+			whereCondition.PartyId = PartyId;
+		}
+
+		if (CategoryId) {
+			whereCondition.CategoryId = CategoryId;
+		}
+
+		if (SubCategoryId) {
+			whereCondition.SubCategoryId = SubCategoryId;
+		}
+
+		if (SearchKey) {
+			SearchKey?.trim();
+			const fullNameCondition = Sequelize.literal(`CONCAT(fn_party.PartyFirstName,' ', fn_party.PartyLastName) LIKE '%${SearchKey}%'`);
+			whereCondition[Op.or] = [
+				{Action: {[Op.like]: "%" + SearchKey + "%"}},
+				{Amount: {[Op.like]: "%" + SearchKey + "%"}},
+				{Date: {[Op.like]: "%" + SearchKey + "%"}},
+				{"$fn_account.AccountName$": {[Op.like]: "%" + SearchKey + "%"}},
+				{"$fn_category.CategoryName$": {[Op.like]: "%" + SearchKey + "%"}},
+				{"$fn_sub_category.SubCategoriesName$": {[Op.like]: "%" + SearchKey + "%"}},
+				{"$fn_party.PartyFirstName$": {[Op.like]: "%" + SearchKey + "%"}},
+				{"$fn_party.PartyLastName$": {[Op.like]: "%" + SearchKey + "%"}},
+				{"$fn_party.Email$": {[Op.like]: "%" + SearchKey + "%"}},
+				fullNameCondition,
+			];
+		}
+
+		const fetchList = await TransactionsModel.findAll({
+			attributes: [
+				"TransactionId",
+				"Action",
+				"Date",
+				"CategoryId",
+				"SubCategoryId",
+				"AccountId",
+				"TransferToAccountId",
+				"AccountAmount",
+				[
+					Sequelize.literal(`
+					  CASE 
+						WHEN Action IN ('In', 'Out') THEN CONCAT(fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+						WHEN Action IN ('Credit', 'Debit') THEN CONCAT(Action, ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+						WHEN Action IN ('From', 'To') THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+						WHEN Action = 'Investment' THEN CONCAT('Invest to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+						ELSE ''
+					  END
+					`),
+					"Details",
+				],
+				[
+					Sequelize.literal(`
+					  (
+						SELECT 
+						  SUM(t2.AccountAmount)
+						FROM fn_transactions t2
+						WHERE 
+						  t2.AccountId = fn_transactions.AccountId AND
+						  (
+							t2.Date < fn_transactions.Date OR
+							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+						  ) AND 
+						  t2.isDeleted = false
+					  ) + (
+						SELECT StartAmount 
+						FROM fn_accounts 
+						WHERE fn_accounts.AccountId = fn_transactions.AccountId
+					  )
+					`),
+					"Balance",
+				],
+				[Sequelize.col("fn_category.CategoryName"), "CategoryName"],
+				[Sequelize.col("fn_category.Icon"), "CategoryIcon"],
+				[Sequelize.col("fn_category.Color"), "CategoryColor"],
+				[Sequelize.col("fn_sub_category.SubCategoriesName"), "SubCategoriesName"],
+				[Sequelize.col("fn_sub_category.Icon"), "SubIcon"],
+			],
+			where: whereCondition,
+			include: [
+				{
+					model: AccountsModel,
+					attributes: [],
+				},
+				{
+					model: CategoriesModel,
+					attributes: [],
+				},
+				{
+					model: SubCategoriesModel,
+					attributes: [],
+				},
+				{
+					model: PartiesModel,
+					attributes: [],
+				},
+			],
+			limit: limit,
+			offset: offset,
+			order: [["Date", "DESC"]],
+			raw: true,
+		});
+
+		const graphList = await TransactionsModel.findAll({
+			attributes: [
+				[
+					Sequelize.literal(`
+				  (
+					SELECT 
+					  SUM(t2.AccountAmount)
+					FROM fn_transactions t2
+					WHERE 
+					  t2.AccountId = fn_transactions.AccountId AND
+					  (
+						t2.Date < fn_transactions.Date OR
+						(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+					  ) AND 
+					  t2.isDeleted = false
+				  ) + (
+					SELECT StartAmount 
+					FROM fn_accounts 
+					WHERE fn_accounts.AccountId = fn_transactions.AccountId
+				  )
+				`),
+					"Balance",
+				],
+				"TransactionId",
+				"Action",
+				"Date",
+				"CategoryId",
+				"SubCategoryId",
+				"AccountId",
+				"TransferToAccountId",
+				"AccountAmount",
+			],
+			where: whereCondition,
+			group: ["Date"],
+			order: [["Date", "ASC"]],
+			raw: true,
+		});
+
+		// === Add Time Summary Totals ===
+		const now = new Date();
+		const startOfWeek = new Date(now);
+		startOfWeek.setDate(now.getDate() - now.getDay());
+		startOfWeek.setHours(0, 0, 0, 0);
+
+		const startOfLastWeek = new Date(startOfWeek);
+		startOfLastWeek.setDate(startOfLastWeek.getDate() - 7);
+		const endOfLastWeek = new Date(startOfWeek);
+		endOfLastWeek.setDate(endOfLastWeek.getDate() - 1);
+
+		const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+		const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+		const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+		const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+		const thisWeekTotals = await getTotals(startOfWeek, now, whereCondition);
+		const lastWeekTotals = await getTotals(startOfLastWeek, endOfLastWeek, whereCondition);
+		const thisMonthTotals = await getTotals(startOfMonth, now, whereCondition);
+		const lastMonthTotals = await getTotals(startOfLastMonth, endOfLastMonth, whereCondition);
+		const thisYearTotals = await getTotals(startOfYear, now, whereCondition);
+
+		if (Action) {
+			const totalCount = await TransactionsModel.count({
+				where: whereCondition,
+				distinct: true,
+				subQuery: false,
+			});
+
+			let totalPage = Math.ceil(totalCount / limit);
+
+			return {
+				httpCode: SUCCESS_CODE,
+				result: {
+					status: true,
+					message: "SUCCESS",
+					data: {
+						list: fetchList,
+						graphList: graphList,
+						accountDetails,
+						totalRecords: totalCount,
+						totalPages: totalPage,
+						currentPage: parseInt(Page),
+					},
+				},
+			};
+		} else {
+			return {
+				httpCode: SUCCESS_CODE,
+				result: {
+					status: true,
+					message: "SUCCESS",
+					data: {
+						list: fetchList,
+						graphList: graphList,
+						timeSummary: {
+							thisWeek: thisWeekTotals,
+							lastWeek: lastWeekTotals,
+							thisMonth: thisMonthTotals,
+							lastMonth: lastMonthTotals,
+							thisYear: thisYearTotals,
+						},
+					},
+				},
+			};
+		}
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};

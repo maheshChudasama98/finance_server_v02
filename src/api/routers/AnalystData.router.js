@@ -10,5 +10,7 @@ module.exports = (app) => {
     app.post("/api/top/subcategories", TokenMiddleware, Service.TopSubCategoriesService);
     app.post("/api/data/foll", TokenMiddleware, Service.DataFollService);
     app.get("/api/dashboard", TokenMiddleware, Service.DashboardService);
+
+    app.post("/api/analyst", TokenMiddleware, Service.AnalystService);
 };
 

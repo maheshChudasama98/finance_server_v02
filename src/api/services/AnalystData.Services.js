@@ -6,6 +6,17 @@ const Controller = require("../controllers/AnalystData.controller");
 
 // ------------------------ || Service || ------------------------ //
 
+exports.AnalystService = async (req, res) => {
+    const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+    const { httpCode, result } = await Controller.AnalystController(req?.user, body);
+
+    return res.status(httpCode).send({
+        status: result?.status,
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+        data: DevelopMood ? result?.data : encrypt(result?.data)
+    });
+};
+
 exports.AccountService = async (req, res) => {
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
     const { httpCode, result } = await Controller.AccountController(req?.user, body);

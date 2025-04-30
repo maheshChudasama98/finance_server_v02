@@ -1,6 +1,8 @@
 const { PasswordRegex } = require("../api/constants/constants");
 const db = require("../api/models/index");
 const OrgUsersModel = db.OrgUsersModel;
+const TransactionsModel = db.TransactionsModel;
+const AccountsModel = db.AccountsModel;
 
 const moment = require("moment");
 
@@ -134,10 +136,30 @@ const orgSetAdminAction = async (BranchId, OrgId) => {
     return true;
 };
 
+const dateBaseFindAccountBalance = async (AccountId, SelectDate) => {
+	const CurrentDate = SelectDate ? new Date(SelectDate) : new Date();
+
+	const sumOfAmount = await TransactionsModel.sum("AccountAmount", {
+		where: {
+			Date: {[Op.lte]: CurrentDate},
+			AccountId: AccountId,
+			isDeleted: false,
+		},
+		raw: true,
+	});
+
+	const startAmount = await AccountsModel.findOne({
+		where: {AccountId: AccountId},
+		raw: true,
+	});
+    return  Number(startAmount?.StartAmount) + sumOfAmount;
+};
+
 module.exports = {
     durationFindFun,
     getPagination,
     generatePassword,
     defaultOrgSetAction,
     orgSetAdminAction,
+    dateBaseFindAccountBalance
 }
