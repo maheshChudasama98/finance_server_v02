@@ -772,7 +772,6 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 };
 
 const getTotals = async (startDate, endDate, whereCondition) => {
-	
 	const results = await TransactionsModel.findAll({
 		attributes: ["Action", [Sequelize.fn("SUM", Sequelize.col("AccountAmount")), "TotalAmount"]],
 		where: {
@@ -827,6 +826,11 @@ exports.AnalystController = async (payloadUser, payloadBody) => {
 			BranchId: BranchId,
 			isDeleted: false,
 		};
+		let subQuery = ` ( SELECT  SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE  t2.AccountId = fn_transactions.AccountId AND
+						  (
+							t2.Date < fn_transactions.Date OR
+							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+						  ) AND  t2.isDeleted = false ) + ( SELECT StartAmount FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.AccountId )`;
 
 		if (Duration) {
 			const {StartDate, EndDate} = await durationFindFun(Duration);
@@ -839,14 +843,41 @@ exports.AnalystController = async (payloadUser, payloadBody) => {
 
 		if (PartyId) {
 			whereCondition.PartyId = PartyId;
+
+			subQuery = `(
+				(SELECT StartAmount FROM fn_parties WHERE fn_parties.PartyId = fn_transactions.PartyId) - 
+				(SELECT SUM(t2.AccountAmount)
+				 FROM fn_transactions t2
+				 WHERE t2.PartyId = fn_transactions.PartyId
+				   AND (
+					 t2.Date < fn_transactions.Date OR
+					 (t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+				   )
+				   AND t2.isDeleted = false
+				)
+			  )`;
 		}
 
 		if (CategoryId) {
+			
 			whereCondition.CategoryId = CategoryId;
+
+			subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.CategoryId = fn_transactions.CategoryId AND
+						  (
+							t2.Date < fn_transactions.Date OR
+							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+						  ) AND  t2.isDeleted = false ) + 0`;
 		}
 
 		if (SubCategoryId) {
+			
 			whereCondition.SubCategoryId = SubCategoryId;
+
+			subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.SubCategoryId = fn_transactions.SubCategoryId AND
+						  (
+							t2.Date < fn_transactions.Date OR
+							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+						  ) AND  t2.isDeleted = false ) + 0`;
 		}
 
 		if (SearchKey) {
@@ -888,27 +919,7 @@ exports.AnalystController = async (payloadUser, payloadBody) => {
 					`),
 					"Details",
 				],
-				[
-					Sequelize.literal(`
-					  (
-						SELECT 
-						  SUM(t2.AccountAmount)
-						FROM fn_transactions t2
-						WHERE 
-						  t2.AccountId = fn_transactions.AccountId AND
-						  (
-							t2.Date < fn_transactions.Date OR
-							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
-						  ) AND 
-						  t2.isDeleted = false
-					  ) + (
-						SELECT StartAmount 
-						FROM fn_accounts 
-						WHERE fn_accounts.AccountId = fn_transactions.AccountId
-					  )
-					`),
-					"Balance",
-				],
+				[Sequelize.literal(subQuery), "Balance"],
 				[Sequelize.col("fn_category.CategoryName"), "CategoryName"],
 				[Sequelize.col("fn_category.Icon"), "CategoryIcon"],
 				[Sequelize.col("fn_category.Color"), "CategoryColor"],
@@ -941,37 +952,7 @@ exports.AnalystController = async (payloadUser, payloadBody) => {
 		});
 
 		const graphList = await TransactionsModel.findAll({
-			attributes: [
-				[
-					Sequelize.literal(`
-				  (
-					SELECT 
-					  SUM(t2.AccountAmount)
-					FROM fn_transactions t2
-					WHERE 
-					  t2.AccountId = fn_transactions.AccountId AND
-					  (
-						t2.Date < fn_transactions.Date OR
-						(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
-					  ) AND 
-					  t2.isDeleted = false
-				  ) + (
-					SELECT StartAmount 
-					FROM fn_accounts 
-					WHERE fn_accounts.AccountId = fn_transactions.AccountId
-				  )
-				`),
-					"Balance",
-				],
-				"TransactionId",
-				"Action",
-				"Date",
-				"CategoryId",
-				"SubCategoryId",
-				"AccountId",
-				"TransferToAccountId",
-				"AccountAmount",
-			],
+			attributes: [[Sequelize.literal(subQuery), "Balance"], "TransactionId", "Action", "Date", "CategoryId", "SubCategoryId", "AccountId", "TransferToAccountId", "AccountAmount"],
 			where: whereCondition,
 			group: ["Date"],
 			order: [["Date", "ASC"]],
