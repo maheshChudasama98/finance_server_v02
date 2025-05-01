@@ -1,6 +1,9 @@
 require("dotenv").config();
-const nodemailer = require("nodemailer");
+const fs = require("fs");
 const path = require("path");
+const {decode} = require("entities");
+const {readFile} = require("fs/promises");
+const nodemailer = require("nodemailer");
 const {ProjectName} = require("../api/constants/constants");
 
 const db = require("../api/models/index");
@@ -270,6 +273,7 @@ const emailForgetPasswordSendOTP = async (details) => {
 		throw error;
 	}
 };
+
 // const serverRestartEmail = async () => {
 // 	try {
 // 		const mailDetails = await EmailsmsModel.findOne({
@@ -284,7 +288,7 @@ const emailForgetPasswordSendOTP = async (details) => {
 //             logoURL: process.env.APP_LOGO_URL,
 //             content: emailContentEmployees,
 //         });
-        
+
 // 		const emailMessage = {
 // 			from: `${ProjectName} <${process.env.EMAIL_USER}>`,
 // 			to: `${process.env.MAIN_USER_EMAIL}`,
@@ -309,9 +313,77 @@ const emailForgetPasswordSendOTP = async (details) => {
 // 	}
 // };
 
+//  This New main  set up
+const getHtml = async (filePath, data = false) => {
+	try {
+		if (!fs.existsSync(filePath)) {
+			return null;
+		}
+
+		let result = await readFile(filePath, "utf8");
+
+		if (data && Object.entries(data).length > 0) {
+			for (const [key, value] of Object.entries(data)) {
+				result = result.replace(new RegExp(`\\{${key}}`, "g"), value);
+			}
+		}
+
+		return result;
+	} catch (error) {
+		return error;
+	}
+};
+
+const emailHelper = async (content, subject, to) => {
+	try {
+		const htmlManagement = await getHtml(path.join(__dirname, "../templates/main.html"), {
+			content: content,
+		});
+
+		const emailMessage = {
+			from: `${process.env.PROJECT_NAME} <${process.env.EMAIL_USER}>`,
+			to: `${to}`,
+			subject: subject,
+			html: htmlManagement,
+		};
+
+		const transporter = nodemailer.createTransport({
+			service: "gmail",
+			auth: {
+				user: process.env.EMAIL_USER,
+				pass: process.env.EMAIL_PASSWORD,
+			},
+		});
+
+		const info = transporter.sendMail(emailMessage);
+		return info.response;
+	} catch (error) {
+		console.log(`At email send error :- ${error}`);
+		throw error;
+	}
+};
+
+const serverRestarted = async () => {
+	const find = await EmailsmsModel.findOne({
+		where: {Slug: "server_restarted"},
+		raw: true,
+	});
+
+	let decodeContent = decode(find.Content);
+	const emailContent = decodeContent
+		.replace(/\{__RestartedTime__}/g, new Date())
+		.replace(/\{__ProjectName__}/g, process.env.PROJECT_NAME)
+		.replace(/\{__ServerPort__}/g, process.env.PORT)
+		.replace(/\{__DatabaseName__}/g, process.env.DATABASE_COLLECTION)
+		.replace(/\{__DefaultUrl__}/g, process.env.MAIN_USER_EMAIL);
+
+	await emailHelper(emailContent, find?.Subject, process.env.MAIN_USER_EMAIL);
+};
+
 module.exports = {
 	emailSendHelper,
 	emailFormat,
 	emailForgetPasswordSendOTP,
-	// serverRestartEmail,
+	emailHelper,
+	serverRestarted,
 };

@@ -358,11 +358,11 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 
 		if (TimeDuration === "WEEK") {
 			timeDurationFn = fn("CONCAT", "Week-", fn("WEEK", col("Date")));
-			const {StartDate, EndDate} = await durationFindFun("This_Year");
+			const {StartDate, EndDate} = await durationFindFun("This_Month");
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		} else if (TimeDuration === "MONTH") {
 			timeDurationFn = fn("MONTHNAME", col("Date"));
-			const {StartDate, EndDate} = await durationFindFun("This_Year");
+			const {StartDate, EndDate} = await durationFindFun("This_Month");
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		} else if (TimeDuration === "YEAR") {
 			timeDurationFn = fn("YEAR", col("Date"));
@@ -465,11 +465,11 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 
 		if (TimeDuration === "WEEK") {
 			timeDurationFn = fn("CONCAT", "Week-", fn("WEEK", col("Date")));
-			const {StartDate, EndDate} = await durationFindFun("This_Year");
+			const {StartDate, EndDate} = await durationFindFun("This_Month");
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		} else if (TimeDuration === "MONTH") {
 			timeDurationFn = fn("MONTHNAME", col("Date"));
-			const {StartDate, EndDate} = await durationFindFun("This_Year");
+			const {StartDate, EndDate} = await durationFindFun("This_Month");
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		} else if (TimeDuration === "YEAR") {
 			timeDurationFn = fn("YEAR", col("Date"));
