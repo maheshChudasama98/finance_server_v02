@@ -1,10 +1,12 @@
 require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
-const {decode} = require("entities");
-const {readFile} = require("fs/promises");
+const moment = require("moment");
+const { decode } = require("entities");
+const { readFile } = require("fs/promises");
 const nodemailer = require("nodemailer");
-const {ProjectName} = require("../api/constants/constants");
+
+const { ProjectName } = require("../api/constants/constants");
 
 const db = require("../api/models/index");
 const EmailsmsModel = db.EmailsmsModel;
@@ -274,46 +276,6 @@ const emailForgetPasswordSendOTP = async (details) => {
 	}
 };
 
-// const serverRestartEmail = async () => {
-// 	try {
-// 		const mailDetails = await EmailsmsModel.findOne({
-// 			where: {
-// 				Slug: "server-restart",
-// 				isDeleted: false,
-// 			},
-// 			raw: true,
-// 		});
-//         const htmlEmployees = await getHtml(path.join(__dirname, "../templates/main.html"), {
-//             loginURL: process.env.APP_URL,
-//             logoURL: process.env.APP_LOGO_URL,
-//             content: emailContentEmployees,
-//         });
-
-// 		const emailMessage = {
-// 			from: `${ProjectName} <${process.env.EMAIL_USER}>`,
-// 			to: `${process.env.MAIN_USER_EMAIL}`,
-// 			subject: mailDetails?.Subject,
-// 			html: `
-//             <div style="background-color: #fff; margin-ton: 10px ; width : 100%; border-radius: 8px;" >
-//                 <div style="max-width:600px ; margin:0 auto; border-color:#e5e5e5; border-style :solid ; border-width :0 1px 1px 1px;">
-//                     <div style="background-color: #4CAF50 ;font-size:1px;height:3px"> </div>
-//                         <div style="margin:50px 20px 50px 20px">
-//                             ${details?.description}
-//                         </div>
-//                     </div>
-//                 </div>
-//             </div>
-//             `,
-// 		};
-
-// 		return info.response;
-// 	} catch (error) {
-// 		console.log(`At email send error :- ${error}`);
-// 		throw error;
-// 	}
-// };
-
-//  This New main  set up
 const getHtml = async (filePath, data = false) => {
 	try {
 		if (!fs.existsSync(filePath)) {
@@ -365,17 +327,19 @@ const emailHelper = async (content, subject, to) => {
 
 const serverRestarted = async () => {
 	const find = await EmailsmsModel.findOne({
-		where: {Slug: "server_restarted"},
+		where: { Slug: "server_restarted" },
 		raw: true,
 	});
 
 	let decodeContent = decode(find.Content);
+	const data = moment(new Date()).format("DD/MM/YYYY - HH:mm A");
+
 	const emailContent = decodeContent
-		.replace(/\{__RestartedTime__}/g, new Date())
+		.replace(/\{__RestartedTime__}/g, data)
 		.replace(/\{__ProjectName__}/g, process.env.PROJECT_NAME)
 		.replace(/\{__ServerPort__}/g, process.env.PORT)
 		.replace(/\{__DatabaseName__}/g, process.env.DATABASE_COLLECTION)
-		.replace(/\{__DefaultUrl__}/g, process.env.MAIN_USER_EMAIL);
+		.replace(/\{__DefaultUrl__}/g, process.env.PROJECT_API_URL + process.env.PORT);
 
 	await emailHelper(emailContent, find?.Subject, process.env.MAIN_USER_EMAIL);
 };

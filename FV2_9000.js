@@ -9,7 +9,8 @@ const cors = require("cors");
 const bodyParser = require("body-parser");
 const fileUpload = require("express-fileupload");
 const path = require("path");
-const {DefaultDatabaseAction, DefaultEmailSet} = require("./src/api/controllers/Basic.controller");
+const { DefaultDatabaseAction, DefaultEmailSet } = require("./src/api/controllers/Basic.controller");
+const { serverRestarted } = require("./src/helpers/Email.helper");
 
 // --------------------------------------------------------------------------
 
@@ -34,6 +35,7 @@ setTimeout(async () => {
 	console.log("Executing task...");
 	// await  DefaultDatabaseAction();
 	await DefaultEmailSet();
+	await serverRestarted();
 }, 2 * 60 * 1000);
 
 // ------------ ||  Server listen port  || ------------ //
