@@ -1,7 +1,8 @@
 module.exports = {
 	DevelopMood: true,
-	ProjectName: "AnalystData",
-	resetLink: "http://localhost:3030/modules",
+	ProjectName: "Analyst FV2",
+	resetLink: "http://www.smartsdn.in:8000/login",
+	loginLink: "http://www.smartsdn.in:8000/login",
 
 	superAdminRoleId: 1,
 

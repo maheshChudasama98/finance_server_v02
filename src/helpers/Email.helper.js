@@ -2,147 +2,14 @@ require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const moment = require("moment");
-const { decode } = require("entities");
-const { readFile } = require("fs/promises");
+const {decode} = require("entities");
+const {readFile} = require("fs/promises");
 const nodemailer = require("nodemailer");
 
-const { ProjectName } = require("../api/constants/constants");
+const {ProjectName, resetLink} = require("../api/constants/constants");
 
 const db = require("../api/models/index");
 const EmailsmsModel = db.EmailsmsModel;
-
-// const footer =
-//     `<table border="0" cellpadding="0" cellspacing="0" width="100%" margin-tob :10px; class="wrapperFooter">
-//   <tbody>
-//     <tr>
-//       <td align="center" valign="top">
-//         <table border="0" cellpadding="0" cellspacing="0" width="100%" class="footer">
-//           <tbody>
-//             <tr>
-//               <td style="padding-top:10px;padding-bottom:10px;padding-left:10px;padding-right:10px" align="center"
-//                 valign="top" class="socialLinks">
-//                 <a href="${process.env.FACEBOOK_LINK}" style="display:inline-block" target="_blank" class="facebook">
-//                   <img alt="" border="0" src="http://email.aumfusion.com/vespro/img/social/light/facebook.png" style="height:auto;width:100%;max-width:40px;margin-left:2px;margin-right:2px" width="40">
-//                 </a>
-//                 <a href="${process.env.TWITTER_LINK}" style="display: inline-block;" target="_blank" class="twitter">
-//                   <img alt="" border="0" src="http://email.aumfusion.com/vespro/img/social/light/twitter.png" style="height:auto;width:100%;max-width:40px;margin-left:2px;margin-right:2px" width="40">
-//                 </a>
-//                 <a href="${process.env.INSTAGARM_LINK}" style="display: inline-block;" target="_blank"
-//                   class="instagram">
-//                   <img alt="" border="0" src="http://email.aumfusion.com/vespro/img/social/light/instagram.png" style="height:auto;width:100%;max-width:40px;margin-left:2px;margin-right:2px" width="40">
-//                 </a>
-//                 <a href="${process.env.LINKDIN_LINK}" style="display: inline-block;" target="_blank" class="linkdin">
-//                   <img alt="" border="0" src="http://email.aumfusion.com/vespro/img/social/light/linkdin.png" style="height:auto;width:100%;max-width:40px;margin-left:2px;margin-right:2px" width="40">
-//                 </a>
-//               </td>
-//             </tr>
-//             <tr>
-//               <td style="padding: 10px 10px 5px;" align="center" valign="top" class="brandInfo">
-//                 <p class="text"
-//                   style="color:#bbb;font-family:'Open Sans',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;font-style:normal;letter-spacing:normal;line-height:20px;text-transform:none;text-align:center;padding:0;margin:0">
-//                   ©&nbsp;${process.env.ADDRESS}</p>
-//               </td>
-//             </tr>
-//             <tr>
-//               <td style="padding: 0px 10px 10px;" align="center" valign="top" class="footerEmailInfo">
-//                 <p class="text"
-//                   style="color:#bbb;font-family:'Open Sans',Helvetica,Arial,sans-serif;font-size:12px;font-weight:400;font-style:normal;letter-spacing:normal;line-height:20px;text-transform:none;text-align:center;padding:0;margin:0">
-//                   If you have any quetions please contact us <a href="#" style="color:#bbb;text-decoration:underline"
-//                     target="_blank">${process.env.MAIN_USER_EMAIL}</a>
-//                   <br> <a href="${process.env.WEB_LINK}" style="color:#bbb;text-decoration:underline"
-//                     target="_blank">maheshChudasama.com</a>
-//                 </p>
-//               </td>
-//             </tr>
-//           </tbody>
-//         </table>
-//       </td>
-//     </tr>
-//     <tr>
-//       <td style="font-size:1px;line-height:1px" height="30">&nbsp;</td>
-//     </tr>
-//   </tbody>
-// </table>`
-
-// const Box = `
-// <div style="background-color: #f5f5f5; width : 100%; >
-//     <table border="0" cellpadding="0" cellspacing="0"  style="max-width:600px ; margin:0 auto">
-//         <tbody>
-//             <tr>
-//                 <td align="center" valign="top">
-//                     <table border="0" cellpadding="0" cellspacing="0" width="100%" class="tableCard"
-//                         style="background-color:#fff;border-color:#e5e5e5;border-style:solid;border-width:0 1px 1px 1px;">
-//                         <tbody>
-//                             <tr>
-//                                 <td style="background-color:#00a76f;font-size:1px;line-height:3px" class="topBorder"
-//                                     height="3">&nbsp;</td>
-//                             </tr>
-
-//                             <tr>
-//                                 <td style=" padding-top: 60px; padding-bottom: 5px; padding-left: 20px; padding-right: 20px;"
-//                                     align="center" valign="top" class="mainTitle">
-//                                     <h2 class="text"
-//                                         style="color:#000;font-family:Poppins,Helvetica,Arial,sans-serif;font-size:28px;font-weight:500;font-style:normal;letter-spacing:normal;line-height:36px;text-transform:none;text-align:center;padding:0;margin:0">
-//                                         Hi "John Doe"</h2>
-//                                 </td>
-//                             </tr>
-//                             <tr>
-//                                 <td style="padding-bottom: 30px;  padding-left: 20px; padding-right: 20px;"
-//                                     align="center" valign="top" class="subTitle">
-//                                     <h4 class="text"
-//                                         style="color:#999;font-family:Poppins,Helvetica,Arial,sans-serif;font-size:16px;font-weight:500;font-style:normal;letter-spacing:normal;line-height:24px;text-transform:none;text-align:center;padding:0;margin:0">
-//                                         Verify Your Email Account</h4>
-//                                 </td>
-//                             </tr>
-//                             <tr>
-//                                 <td style="padding-left:20px;padding-right:20px" align="center" valign="top"
-//                                     class="containtTable ui-sortable">
-//                                     <table border="0" cellpadding="0" cellspacing="0" width="100%"
-//                                         class="tableDescription" style="">
-//                                         <tbody>
-//                                             <tr>
-//                                                 <td style="padding-bottom: 20px;" align="center" valign="top"
-//                                                     class="description">
-//                                                     <p class="text"
-//                                                         style="color:#666;font-family:'Open Sans',Helvetica,Arial,sans-serif;font-size:14px;font-weight:400;font-style:normal;letter-spacing:normal;line-height:22px;text-transform:none;text-align:center;padding:0;margin:0">
-//                                                         Thanks for subscribe for the Vespro newsletter. Please click
-//                                                         confirm
-//                                                         button for subscription to start receiving our emails.</p>
-//                                                 </td>
-//                                             </tr>
-//                                         </tbody>
-//                                     </table>
-//                                     <table border="0" cellpadding="0" cellspacing="0" width="100%" class="tableButton"
-//                                         style="padding-bottom: 50px;">
-//                                         <tbody>
-//                                             <tr>
-//                                                 <td style="padding-top:20px;padding-bottom:20px" align="center"
-//                                                     valign="top">
-//                                                     <table border="0" cellpadding="0" cellspacing="0" align="center">
-//                                                         <tbody>
-//                                                             <tr>
-//                                                                 <td style="background-color: #00a76f; padding: 12px 35px; border-radius: 50px;"
-//                                                                     align="center" class="ctaButton"> <a href="#"
-//                                                                         style="color:#fff;font-family:Poppins,Helvetica,Arial,sans-serif;font-size:13px;font-weight:600;font-style:normal;letter-spacing:1px;line-height:20px;text-transform:uppercase;text-decoration:none;display:block"
-//                                                                         target="_blank" class="text">Confirm Email</a>
-//                                                                 </td>
-//                                                             </tr>
-//                                                         </tbody>
-//                                                     </table>
-//                                                 </td>
-//                                             </tr>
-//                                         </tbody>
-//                                     </table>
-//                                 </td>
-//                             </tr>
-//                         </tbody>
-//                     </table>
-//                 </td>
-//             </tr>
-//         </tbody>
-//     </table>
-// </div>
-// `
 
 const emailFormat = async (details) => {
 	try {
@@ -296,10 +163,12 @@ const getHtml = async (filePath, data = false) => {
 	}
 };
 
-const emailHelper = async (content, subject, to) => {
+const emailHelper = async (content, subject, title, to) => {
 	try {
 		const htmlManagement = await getHtml(path.join(__dirname, "../templates/main.html"), {
+			title: title,
 			content: content,
+			current_time: moment(new Date()).format("YYYY"),
 		});
 
 		const emailMessage = {
@@ -327,7 +196,7 @@ const emailHelper = async (content, subject, to) => {
 
 const serverRestarted = async () => {
 	const find = await EmailsmsModel.findOne({
-		where: { Slug: "server_restarted" },
+		where: {Slug: "server_restarted"},
 		raw: true,
 	});
 
@@ -341,7 +210,25 @@ const serverRestarted = async () => {
 		.replace(/\{__DatabaseName__}/g, process.env.DATABASE_COLLECTION)
 		.replace(/\{__DefaultUrl__}/g, process.env.PROJECT_API_URL + process.env.PORT);
 
-	await emailHelper(emailContent, find?.Subject, process.env.MAIN_USER_EMAIL);
+	await emailHelper(emailContent, find?.Subject, find?.Title, process.env.MAIN_USER_EMAIL);
+};
+
+const registrationUser = async (firstName, lastName, email, password) => {
+	const find = await EmailsmsModel.findOne({
+		where: {Slug: "registration"},
+		raw: true,
+	});
+
+	let decodeContent = decode(find.Content);
+
+	const emailContent = decodeContent
+		.replace(/\{__FirstName__}/g, firstName)
+		.replace(/\{__LastName__}/g, lastName)
+		.replace(/\{__UserEmail__}/g, email)
+		.replace(/\{__TemporaryPassword__}/g, password)
+		.replace(/\{__LoginLink__}/g, resetLink);
+
+	await emailHelper(emailContent, find?.Subject, find?.Title, email);
 };
 
 module.exports = {
@@ -350,4 +237,5 @@ module.exports = {
 	emailForgetPasswordSendOTP,
 	emailHelper,
 	serverRestarted,
+	registrationUser,
 };

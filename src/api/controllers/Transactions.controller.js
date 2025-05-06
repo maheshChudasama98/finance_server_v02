@@ -360,6 +360,8 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
 			const EndDate = new Date(FilterBy.EndDate);
 			EndDate.setHours(23, 59, 59, 999);
 			whereCondition.Date = {[Op.lte]: EndDate};
+		} else if (SearchKey || Object.keys(FilterBy).length > 0) {
+			whereCondition.Date = {[Op.gte]: new Date("2024-01-01")};
 		} else {
 			const {StartDate, EndDate} = await durationFindFun("Last_Thirty_Days");
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};

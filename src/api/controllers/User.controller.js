@@ -7,8 +7,8 @@ const {getPagination, generatePassword, defaultOrgSetAction} = require("../../he
 
 const db = require("../models/index");
 const {FileUpload} = require("../../helpers/FileUpload.helper");
-const {UserProfileImagePath, ProjectName, resetLink, superAdminRoleId, OrgImagePath, BranchImagePath} = require("../constants/constants");
-const {emailFormat} = require("../../helpers/Email.helper");
+const {UserProfileImagePath, superAdminRoleId, OrgImagePath, BranchImagePath} = require("../constants/constants");
+const {registrationUser} = require("../../helpers/Email.helper");
 const {UserBasedDefaultCategory} = require("./Basic.controller");
 const UserModel = db.UserModel;
 const OrgUsersModel = db.OrgUsersModel;
@@ -124,7 +124,7 @@ exports.UserInfoController = async (payloadUser) => {
                           )
                   )`),
 					"SelectBranch",
-				]
+				],
 			],
 			where: {
 				UserId: UserId,
@@ -439,31 +439,7 @@ exports.UserModifyController = async (payloadUser, payloadBody, payloadFile) => 
 
 			await UserBasedDefaultCategory(NewUser?.UserId, OrgId, BranchId);
 
-			const emailDetails = {
-				to: UserEmail,
-				subject: `Welcome to ${ProjectName} Registration Successful`,
-				description: `<div style="font-family: Arial, sans-serif; line-height: 1.6;">
-                    <h2 style="color: #4CAF50; text-align: center;">Welcome to Our System!</h2>
-                    <p>Hello <strong>${FirstName + " " + LastName}</strong>,</p>
-                    <p>You have been added to our system. Here are your login details:</p>
-                    <p><strong>Email:</strong> ${UserEmail}</p>
-                    <p><strong>Temporary Password:</strong></p>
-                    <div style="background-color: #f4f4f9; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 18px; font-weight: bold; text-align: center; color: #333; margin-bottom: 20px;">
-                        ${password}
-                    </div>
-                    <p>If you wish to change your password, please click the button below:</p>
-                    <p style="text-align: center;">
-                        <a href="${resetLink}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold; display: inline-block;">Change Password</a>
-                    </p>
-                    <p>If you did not request this, you can ignore this email.</p>
-                    <p>Thank you,<br>The Team</p>
-                    <div style="margin-top: 20px; font-size: 14px; color: #777; text-align: center;">
-                        &copy; ${new Date().getFullYear()} Our Company. All rights reserved.
-                    </div>
-                </div>`,
-			};
-
-			await emailFormat(emailDetails);
+			await registrationUser(FirstName, LastName, UserEmail, password);
 
 			return {
 				httpCode: SUCCESS_CODE,

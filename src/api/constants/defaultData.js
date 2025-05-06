@@ -1,3 +1,5 @@
+const { ProjectName } = require("./constants");
+
 require("dotenv").config();
 
 module.exports.defaultOrgDetails = {
@@ -512,7 +514,14 @@ module.exports.emailList = [
 		Type: "email",
 		Title: "Server Restarted",
 		Subject: "Server Restarted",
-		Content: `<h2 style="color:#4CAF50;">Server Restarted</h2><p><strong>Time:</strong>{__RestartedTime__}</p><p><strong>Project:</strong>{__ProjectName__}</p><p><strong>Port:</strong>{__ServerPort__}</p><p><strong>Database:</strong>{__DatabaseName__}</p><p><strong>URl:</strong>{__DefaultUrl__}</p>`,
+		Content: `<p><strong>Time:</strong>{__RestartedTime__}</p><p><strong>Project:</strong>{__ProjectName__}</p><p><strong>Port:</strong>{__ServerPort__}</p><p><strong>Database:</strong>{__DatabaseName__}</p><p><strong>URl:</strong>{__DefaultUrl__}</p>`,
 		Slug: "server_restarted",
+	},
+	{
+		Type: "email",
+		Title: `Welcome to ${ProjectName} Registration Successful`,
+		Subject: "Registration",
+		Content: `<p>Hello <strong>{__FirstName__} {__LastName__}</strong>,</p> <p>You have been added to our system. Here are your login details:</p><p><strong>Email:</strong>{__UserEmail__}</p><p><strong>Temporary Password:</strong></p><div style="background-color: #f4f4f9; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 18px; font-weight: bold; text-align: center; color: #333; margin-bottom: 20px;">{__TemporaryPassword__}</div> <p>If you wish to change your password, please click the button below:</p> <p style="text-align: center;"> <a href="{__LoginLink__}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold; display: inline-block;">Change Password</a> </p> <p>If you did not request this, you can ignore this email.</p> <p>Thank you,<br>The Team</p>`,
+		Slug: "registration",
 	},
 ];
