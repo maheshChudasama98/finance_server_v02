@@ -27,6 +27,9 @@
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.5",
     "nodemon": "^3.0.1",
+    "numeral": "^2.0.6",
+    "pdfkit": "^0.17.1",
+    "pdfkit-table": "^0.1.99",
     "sequelize": "^6.33.0",
     "uuid": "^10.0.0",
     "xlsx": "^0.18.5"

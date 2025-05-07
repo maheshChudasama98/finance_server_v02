@@ -11,6 +11,7 @@ const fileUpload = require("express-fileupload");
 const path = require("path");
 const {DefaultDatabaseAction, DefaultEmailSet} = require("./src/api/controllers/Basic.controller");
 const { serverRestarted } = require("./src/helpers/Email.helper");
+const { createTransactionStatement } = require("./src/helpers/PDF_creater");
 
 // --------------------------------------------------------------------------
 
@@ -42,3 +43,5 @@ setTimeout(async () => {
 app.listen(port, (error) => {
 	error == null ? console.log(`\x1b[92mServer is running on port -- ${port}\x1b[39m `) : console.log("\x1b[91mServer error \x1b[91m", error);
 });
+
+createTransactionStatement()

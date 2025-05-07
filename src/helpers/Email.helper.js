@@ -163,7 +163,7 @@ const getHtml = async (filePath, data = false) => {
 	}
 };
 
-const emailHelper = async (content, subject, title, to) => {
+const emailHelper = async (content, subject, title, to, attachments, ...other) => {
 	try {
 		const htmlManagement = await getHtml(path.join(__dirname, "../templates/main.html"), {
 			title: title,
@@ -176,6 +176,7 @@ const emailHelper = async (content, subject, title, to) => {
 			to: `${to}`,
 			subject: subject,
 			html: htmlManagement,
+			attachments: attachments,
 		};
 
 		const transporter = nodemailer.createTransport({

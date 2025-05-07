@@ -12,8 +12,8 @@ module.exports = (app) => {
 	app.get("/api/setting", TokenMiddleware, UserService.SettingGetService);
 	app.post("/api/setting/modify", TokenMiddleware, UserService.SettingModifyService);
 
-	cron.schedule("* * * * *", () => {
-		console.log("Running every 1 minute:", new Date().toISOString());
-		// Your task here
-	});
+	// cron.schedule("* * * * * *", () => {
+	// 	console.log("Running every 1 minute:", new Date().toISOString());
+	// 	// Your task here
+	// });
 };

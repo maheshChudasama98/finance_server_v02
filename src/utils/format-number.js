@@ -1,4 +1,5 @@
-import numeral from 'numeral';
+const numeral = require("numeral");
+
 
 // ----------------------------------------------------------------------
 
