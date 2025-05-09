@@ -524,4 +524,43 @@ module.exports.emailList = [
 		Content: `<p>Hello <strong>{__FirstName__} {__LastName__}</strong>,</p> <p>You have been added to our system. Here are your login details:</p><p><strong>Email:</strong>{__UserEmail__}</p><p><strong>Temporary Password:</strong></p><div style="background-color: #f4f4f9; padding: 12px; border: 1px solid #ddd; border-radius: 5px; font-size: 18px; font-weight: bold; text-align: center; color: #333; margin-bottom: 20px;">{__TemporaryPassword__}</div> <p>If you wish to change your password, please click the button below:</p> <p style="text-align: center;"> <a href="{__LoginLink__}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 5px; font-size: 16px; font-weight: bold; display: inline-block;">Change Password</a> </p> <p>If you did not request this, you can ignore this email.</p> <p>Thank you,<br>The Team</p>`,
 		Slug: "registration",
 	},
+	{
+		Type: "email",
+		Title: `Monthly Transaction Statement for {__MonthYear__}`,
+		Subject: "Your Monthly Financial Summary",
+		Content: `
+			<p style="font-family: Arial, sans-serif; line-height: 1.6;">Dear <strong>{__UserName__}</strong>,</p>
+			<p style="font-family: Arial, sans-serif; line-height: 1.6;">Here is your transaction summary for <strong>{__MonthYear__}</strong>.</p>
+	
+			<table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-family: Arial, sans-serif;">
+				<tr style="background-color: #f2f2f2;">
+					<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Category</th>
+					<th style="padding: 10px; border: 1px solid #ddd; text-align: left;">Amount (₹)</th>
+				</tr>
+				<tr>
+					<td style="padding: 10px; border: 1px solid #ddd;">Income</td>
+					<td style="padding: 10px; border: 1px solid #ddd;">{__Income__}</td>
+				</tr>
+				<tr>
+					<td style="padding: 10px; border: 1px solid #ddd;">Expense</td>
+					<td style="padding: 10px; border: 1px solid #ddd;">{__Expense__}</td>
+				</tr>
+				<tr>
+					<td style="padding: 10px; border: 1px solid #ddd;">Investment</td>
+					<td style="padding: 10px; border: 1px solid #ddd;">{__Investment__}</td>
+				</tr>
+				<tr>
+					<td style="padding: 10px; border: 1px solid #ddd;">Credit</td>
+					<td style="padding: 10px; border: 1px solid #ddd;">{__Credit__}</td>
+				</tr>
+				<tr>
+					<td style="padding: 10px; border: 1px solid #ddd;">Debit</td>
+					<td style="padding: 10px; border: 1px solid #ddd;">{__Debit__}</td>
+				</tr>
+			</table>
+	
+			<p style="font-family: Arial, sans-serif; line-height: 1.6; margin-top: 30px;">Thank you,<br>The Team</p>
+		`,
+		Slug: "monthly-transaction-summary",
+	},
 ];

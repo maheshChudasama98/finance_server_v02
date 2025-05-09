@@ -3,6 +3,7 @@ require("dotenv").config();
 const PDFDocument = require("pdfkit-table");
 const path = require("path");
 const moment = require("moment");
+const {decode} = require("entities");
 
 const fs = require("fs");
 const {emailHelper} = require("./Email.helper");
@@ -17,6 +18,7 @@ const AccountsModel = db.AccountsModel;
 const CategoriesModel = db.CategoriesModel;
 const SubCategoriesModel = db.SubCategoriesModel;
 const PartiesModel = db.PartiesModel;
+const EmailsmsModel = db.EmailsmsModel;
 
 async function createTransactionStatement() {
 	const {StartDate, EndDate} = await durationFindFun("Last_Month");
@@ -41,6 +43,11 @@ async function createTransactionStatement() {
 				attributes: [],
 			},
 		],
+		raw: true,
+	});
+
+	const findMail = await EmailsmsModel.findOne({
+		where: {Slug: "monthly-transaction-summary"},
 		raw: true,
 	});
 
@@ -182,105 +189,191 @@ async function createTransactionStatement() {
 					attributes: [],
 				},
 			],
-			order: [["Date", "DESC"]],
+			order: [["Date", "ASC"]],
 			raw: true,
 		});
 
-		// const groupedByDate = fetchList.reduce((acc, item) => {
-		// 	let dateGroup = acc.find((group) => group.date === item.Date);
+		if (fetchList.length > 0) {
+			let totalIn = 0;
+			let totalOut = 0;
+			let totalInvestment = 0;
+			let totalCredit = 0;
+			let totalDebit = 0;
 
-		// 	if (!dateGroup) {
-		// 		dateGroup = {date: item.Date, totalIn: 0, totalOut: 0, dayTotal: 0, records: []};
-		// 		acc.push(dateGroup);
-		// 	}
+			fetchList.forEach((tx) => {
+				const amount = parseFloat(tx.Amount) || 0;
 
-		// 	const amount = parseFloat(item.Amount);
-		// 	if (item.Action === "In") {
-		// 		dateGroup.totalIn += amount;
-		// 	} else if (item.Action === "Out") {
-		// 		dateGroup.totalOut += amount;
-		// 	}
-
-		// 	dateGroup.dayTotal = dateGroup.totalIn - dateGroup.totalOut;
-		// 	dateGroup.records.push(item);
-		// 	return acc;
-		// }, []);
-
-
-		const dirPath = path.join(__dirname, "../../public", "statement", element.UUID);
-		let fileName = `${moment().subtract(1, "months").format("MMM_YYYY")}.pdf`;
-
-		const pdfPath = path.join(dirPath, fileName);
-
-		if (!fs.existsSync(dirPath)) {
-			fs.mkdirSync(dirPath, {recursive: true});
-		}
-
-		let doc = new PDFDocument({margin: 30, size: "A4"});
-		doc.pipe(fs.createWriteStream(pdfPath));
-
-		// --- First Page Header ---
-		doc.fontSize(18).text("FV2", {align: "center"});
-		doc.fontSize(12).text("Transaction Statement " + moment().subtract(1, "months").format("MMM YYYY"), {align: "center"});
-		doc.moveDown();
-
-		const table = {
-			headers: ["SubCategory", "Action", "Account", "Transfer Account", "Party Name", "Amount"],
-			// headers: [
-			// 	{label: "SubCategory", property: "SubCategory", width: 60, renderer: null},
-			// 	{label: "Action", property: "Action", width: 150, renderer: null},
-			// 	{label: "Account", property: "Account", width: 100, renderer: null},
-			// 	{label: "Transfer Account", property: "TransferAccount", width: 100, renderer: null},
-			// 	{label: "Party Name", property: "PartyName", width: 80, renderer: null},
-			// 	{
-			// 		label: "Amount",
-			// 		property: "Amount",
-			// 		width: 63,
-			// 		renderer: (value, indexColumn, indexRow, row) => {
-			// 			return `U$ ${Number(value).toFixed(2)}`;
-			// 		},
-			// 	},
-			// ],
-			// datas: [
-			// 	{description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aenean mattis ante in laoreet egestas. ", price1: "$1", price3: "$ 3", price2: "$2", price4: "4", name: "Name 1"},
-			// 	{name: "bold:Name 2", description: "bold:Lorem ipsum dolor.", price1: "bold:$1", price3: "$3", price2: "$2", price4: "4", options: {fontSize: 10, separation: true}},
-			// 	{name: "Name 3", description: "Lorem ipsum dolor.", price1: "bold:$1", price4: "4.111111", price2: "$2", price3: {label: "PRICE $3", options: {fontSize: 12}}},
-			// ],
-			rows: fetchList.map((r) => [
-				r?.SubCategoryDetails?.SubCategoriesName || "-",
-				r?.Action == "From" ? "Transfer" : r?.Action,
-				r?.AccountDetails?.AccountName || "-",
-				r?.TransferDetails?.AccountName || "-",
-				r?.PartyDetails?.FullName || "-",
-				r?.AccountAmount,
-			]),
-		};
-
-		doc.table(table, {
-			width: 540,
-			prepareHeader: () => doc.font("Helvetica-Bold").fontSize(10),
-			prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
-				doc.font("Helvetica").fontSize(9);
-
-				// Right align last column (Amount)
-				if (indexColumn === 5) {
-					doc.text(row[indexColumn], rectCell.x, rectCell.y, {
-						width: rectCell.width,
-						align: "right",
-					});
-					return false; // skip default drawing
+				if (tx.Action === "In") {
+					totalIn += amount;
+				} else if (tx.Action === "Out") {
+					totalOut += amount;
+				} else if (tx.Action === "Investment") {
+					totalInvestment += amount;
+				} else if (tx.Action === "Credit") {
+					totalCredit += amount;
+				} else if (tx.Action === "Debit") {
+					totalDebit += amount;
 				}
-			},
-		});
+			});
 
-		doc.end();
+			// const groupedByDate = fetchList.reduce((acc, item) => {
+			// 	let dateGroup = acc.find((group) => group.date === item.Date);
 
-		// emailHelper("<p>Hello</p>", "subject", "title", "mahesh.chudasama098@gmail.com", [
-		// 	{
-		// 		filename: fileName,
-		// 		path: pdfPath,
-		// 	},
-		// ]);
+			// 	if (!dateGroup) {
+			// 		dateGroup = {date: item.Date, totalIn: 0, totalOut: 0, dayTotal: 0, records: []};
+			// 		acc.push(dateGroup);
+			// 	}
+
+			// 	const amount = parseFloat(item.Amount);
+			// 	if (item.Action === "In") {
+			// 		dateGroup.totalIn += amount;
+			// 	} else if (item.Action === "Out") {
+			// 		dateGroup.totalOut += amount;
+			// 	}
+
+			// 	dateGroup.dayTotal = dateGroup.totalIn - dateGroup.totalOut;
+			// 	dateGroup.records.push(item);
+			// 	return acc;
+			// }, []);
+
+			const dirPath = path.join(__dirname, "../../public", "statement", element.UUID);
+			let fileName = `${moment().subtract(1, "months").format("MMM_YYYY")}.pdf`;
+			const currentMonth = moment().subtract(1, "months").format("MMM YYYY");
+
+			const pdfPath = path.join(dirPath, fileName);
+
+			if (!fs.existsSync(dirPath)) {
+				fs.mkdirSync(dirPath, {recursive: true});
+			}
+
+			let doc = new PDFDocument({margin: 20, size: "A4"});
+			doc.pipe(fs.createWriteStream(pdfPath));
+
+			// --- First Page Header ---
+			doc.fontSize(18).text("FV2", {align: "center"});
+			doc.moveDown(0.5);
+			doc.fontSize(11).text("Transaction Statement " + currentMonth, {align: "center"});
+			doc.moveDown();
+
+			const tableDetails = {
+				headers: [
+					{
+						label: "Month Over View",
+						property: "Action",
+						width: 125,
+					},
+					{
+						label: "",
+						property: "Amount",
+						width: 125,
+						align: "right",
+						renderer: (value, indexColumn, indexRow, row) => {
+							return `${Number(value).toFixed(2)}`;
+						},
+					},
+				],
+
+				rows: [
+					["Income", totalIn],
+					["Expense", totalOut],
+					["Investment", totalInvestment],
+					["Credit", totalCredit],
+					["Debit", totalDebit],
+				],
+			};
+
+			doc.table(tableDetails, {
+				width: 250,
+				padding: 2,
+
+				hideHeader: true,
+				prepareHeader: () => {
+					doc.font("Helvetica-Bold").fontSize(10);
+				},
+				prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+					if (indexColumn === 0) {
+						doc.font("Helvetica-Bold").fontSize(9); // Bold only the first row
+					} else {
+						doc.font("Helvetica").fontSize(9);
+					}
+				},
+			});
+
+			doc.moveDown();
+
+			const table = {
+				headers: [
+					{
+						label: "Date",
+						property: "Date",
+						width: 60,
+						renderer: (value, indexColumn, indexRow, row) => {
+							return moment(value).format("DD MMM");
+						},
+					},
+					{label: "SubCategory", property: "SubCategory", width: 120, renderer: null},
+					{label: "Action", property: "Action", width: 100, renderer: null},
+
+					{label: "Account", property: "Account", width: 100, renderer: null},
+					{label: "Transfer / Party ", property: "TransferAccount", width: 100, renderer: null},
+					// {label: "", property: "PartyName", width: 90, renderer: null},
+					{
+						label: "Amount",
+						property: "Amount",
+						width: 75,
+						align: "right",
+						renderer: (value, indexColumn, indexRow, row) => {
+							return `${Number(value).toFixed(2)}`;
+						},
+					},
+				],
+
+				rows: fetchList.map((r) => [
+					r?.Date,
+					r?.SubCategoryDetails?.SubCategoriesName || "",
+					r?.Action == "From" ? "Transfer" : r?.Action,
+					r?.AccountDetails?.AccountName || "",
+					r?.TransferDetails?.AccountName || r?.PartyDetails?.FullName || "",
+					r?.AccountAmount,
+				]),
+			};
+
+			doc.table(table, {
+				width: 540,
+				padding: 3,
+				prepareHeader: () => {
+					doc.font("Helvetica-Bold").fontSize(10);
+				},
+				prepareRow: (row, indexColumn, indexRow, rectRow, rectCell) => {
+					doc.font("Helvetica").fontSize(9);
+				},
+			});
+
+			doc.moveDown();
+
+			doc.end();
+
+			let decodeContent = decode(findMail.Content);
+			let decodeTitle = decode(findMail.Title);
+
+			const emailContent = decodeContent
+				.replace(/\{__UserName__}/g, element?.FirstName)
+				.replace(/\{__MonthYear__}/g, currentMonth)
+				.replace(/\{__Income__}/g, totalIn)
+				.replace(/\{__Expense__}/g, totalOut)
+				.replace(/\{__Investment__}/g, totalInvestment)
+				.replace(/\{__Credit__}/g, totalCredit)
+				.replace(/\{__Debit__}/g, totalDebit);
+
+			const Title = decodeTitle.replace(/\{__MonthYear__}/g, currentMonth);
+
+			emailHelper(emailContent, findMail.Subject, Title, element?.Email, [
+				{
+					filename: fileName,
+					path: pdfPath,
+				},
+			]);
+		}
 	}
 }
 
