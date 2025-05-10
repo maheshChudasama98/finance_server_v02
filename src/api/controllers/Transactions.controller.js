@@ -277,7 +277,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		const {Action, Page, PageSize, FilterBy, SearchKey} = payloadBody;
+		const {Action, Page, PageSize, FilterBy, SearchKey, Duration} = payloadBody;
 
 		if (Action) {
 			if (!Page || !PageSize) {
@@ -363,8 +363,12 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
 		} else if (SearchKey || Object.keys(FilterBy).length > 0) {
 			whereCondition.Date = {[Op.gte]: new Date("2024-01-01")};
 		} else {
-			const {StartDate, EndDate} = await durationFindFun("Last_Thirty_Days");
+			const {StartDate, EndDate} = await durationFindFun(Duration || "Last_Thirty_Days");
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+
+			if (Duration == "All") {
+				delete whereCondition.Date;
+			}
 		}
 
 		if (FilterBy?.AccountsIds && FilterBy?.AccountsIds?.length > 0) {
