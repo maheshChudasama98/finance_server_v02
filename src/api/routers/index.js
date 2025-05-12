@@ -26,10 +26,11 @@ module.exports = (app) => {
 	require("./AnalystData.router")(app);
 	require("./Kanban.router")(app);
 
-	// cron.schedule("* * * * * *", () => {
-	// 	console.log("Running every 1 minute:", new Date().toISOString());
-	// 	// Your task here
-	// });
+	cron.schedule("* * * * * *", () => {
+		// console.log("Running every 1 minute:", new Date().toISOString());
+		// Your task here
+	});
+	createTransactionStatement();
 
 	cron.schedule("59 23 * * *", () => {
 		const now = new Date();

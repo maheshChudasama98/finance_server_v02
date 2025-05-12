@@ -200,8 +200,16 @@ async function createTransactionStatement() {
 			let totalCredit = 0;
 			let totalDebit = 0;
 
+			let categorySummary = {};
+			let subCategorySummary = {};
+			let subCategoryCategoryMap = {};
+			let partySummary = {};
+			let accountSummary = {};
+			let dateSummary = {};
+
 			fetchList.forEach((tx) => {
 				const amount = parseFloat(tx.Amount) || 0;
+				const action = tx.Action || "Unknown";
 
 				if (tx.Action === "In") {
 					totalIn += amount;
@@ -214,7 +222,74 @@ async function createTransactionStatement() {
 				} else if (tx.Action === "Debit") {
 					totalDebit += amount;
 				}
+
+				// Category Summary
+				const catName = tx.CategoryDetails?.CategoryName;
+				if (catName && !categorySummary[catName]) {
+					categorySummary[catName] = {
+						In: 0,
+						Out: 0,
+					};
+				}
+				if (catName && categorySummary[catName][action] !== undefined) {
+					categorySummary[catName][action] += amount;
+				}
+
+				// Sub-Category Summary
+				const subCatName = tx.SubCategoryDetails?.SubCategoriesName;
+				if (subCatName && !subCategorySummary[subCatName]) {
+					subCategorySummary[subCatName] = {
+						In: 0,
+						Out: 0,
+					};
+				}
+				if (subCatName && subCategorySummary[subCatName][action] !== undefined) {
+					subCategorySummary[subCatName][action] += amount;
+				}
+
+				if (subCatName && catName) {
+					subCategoryCategoryMap[subCatName] = catName;
+				}
+
+				// Party Summary
+				const partyName = tx?.PartyDetails?.FullName;
+				if (partyName && !partySummary[partyName]) {
+					partySummary[partyName] = {
+						Credit: 0,
+						Debit: 0,
+					};
+				}
+				if (partyName && partySummary[partyName][action] !== undefined) {
+					partySummary[partyName][action] += amount;
+				}
+
+				// Account Summary
+				const accountName = tx.AccountDetails?.AccountName;
+				if (accountName && !accountSummary[accountName]) {
+					accountSummary[accountName] = {
+						In: 0,
+						Out: 0,
+						Investment: 0,
+						Credit: 0,
+						Debit: 0,
+					};
+				}
+				if (accountName && accountSummary[accountName][action] !== undefined) {
+					accountSummary[accountName][action] += amount;
+				}
+
+				const txDate = tx.Date;
+				if (!dateSummary[txDate]) {
+					dateSummary[txDate] = 0;
+				}
+				dateSummary[txDate] += amount;
 			});
+
+			// console.log("Category Summary:", categorySummary);
+			// console.log("SubCategory Summary:", subCategorySummary);
+			// console.log("Party Summary:", partySummary);
+			// console.log("Account Summary:", accountSummary);
+			// console.log("Date Summary:", dateSummary);
 
 			// const groupedByDate = fetchList.reduce((acc, item) => {
 			// 	let dateGroup = acc.find((group) => group.date === item.Date);
@@ -351,6 +426,85 @@ async function createTransactionStatement() {
 
 			doc.moveDown();
 
+			doc.addPage();
+
+			const summaryRows = Object.entries(subCategorySummary).map(([subCategory, {In, Out}]) => {
+				return [subCategory, In > 0 ? In.toFixed(2) : "", Out > 0 ? Out.toFixed(2) : ""];
+			});
+
+			const summaryTable = {
+				headers: [
+					{label: "SubCategory", property: "SubCategory", width: 360},
+					{label: "Income", property: "Income", width: 100, align: "right"},
+					{label: "Expense", property: "Expense", width: 100, align: "right"},
+				],
+				rows: summaryRows,
+			};
+
+			doc.table(summaryTable, {
+				width: 540,
+				padding: 3,
+				prepareHeader: () => {
+					doc.font("Helvetica-Bold").fontSize(10);
+				},
+				prepareRow: () => {
+					doc.font("Helvetica").fontSize(9);
+				},
+			});
+			doc.moveDown();
+
+			const partyRows = Object.entries(partySummary).map(([name, {Credit, Debit}]) => {
+				return [name, Credit > 0 ? Credit.toFixed(2) : "", Debit > 0 ? Debit.toFixed(2) : ""];
+			});
+
+			const partyTable = {
+				headers: [
+					{label: "Party", property: "Party", width: 360},
+					{label: "Credit", property: "Credit", width: 100, align: "right"},
+					{label: "Debit", property: "Debit", width: 100, align: "right"},
+				],
+				rows: partyRows,
+			};
+
+			doc.table(partyTable, {
+				width: 560,
+				padding: 3,
+				prepareHeader: () => doc.font("Helvetica-Bold").fontSize(10),
+				prepareRow: () => doc.font("Helvetica").fontSize(9),
+			});
+
+			doc.moveDown();
+
+			const accountRows = Object.entries(accountSummary).map(([name, summary]) => {
+				return [
+					name,
+					summary.In > 0 ? summary.In.toFixed(2) : "",
+					summary.Out > 0 ? summary.Out.toFixed(2) : "",
+					summary.Credit > 0 ? summary.Credit.toFixed(2) : "",
+					summary.Debit > 0 ? summary.Debit.toFixed(2) : "",
+					summary.Investment > 0 ? summary.Investment.toFixed(2) : "",
+				];
+			});
+
+			const accountTable = {
+				headers: [
+					{label: "Account", property: "Account", width: 200},
+					{label: "In", property: "In", width: 70, align: "right"},
+					{label: "Out", property: "Out", width: 70, align: "right"},
+					{label: "Credit", property: "Credit", width: 70, align: "right"},
+					{label: "Debit", property: "Debit", width: 70, align: "right"},
+					{label: "Investment", property: "Investment", width: 80, align: "right"},
+				],
+				rows: accountRows,
+			};
+
+			doc.table(accountTable, {
+				width: 560,
+				padding: 3,
+				prepareHeader: () => doc.font("Helvetica-Bold").fontSize(10),
+				prepareRow: () => doc.font("Helvetica").fontSize(9),
+			});
+
 			doc.end();
 
 			let decodeContent = decode(findMail.Content);
@@ -367,12 +521,12 @@ async function createTransactionStatement() {
 
 			const Title = decodeTitle.replace(/\{__MonthYear__}/g, currentMonth);
 
-			emailHelper(emailContent, findMail.Subject, Title, element?.Email, [
-				{
-					filename: fileName,
-					path: pdfPath,
-				},
-			]);
+			// emailHelper(emailContent, findMail.Subject, Title, element?.Email, [
+			// 	{
+			// 		filename: fileName,
+			// 		path: pdfPath,
+			// 	},
+			// ]);
 		}
 	}
 }

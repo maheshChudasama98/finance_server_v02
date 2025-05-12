@@ -3,6 +3,7 @@ const {getPagination, durationFindFun} = require("../../helpers/Actions.helper")
 const {Op, Sequelize, fn, col, literal} = require("sequelize");
 
 const db = require("../models/index");
+const {AllMonths} = require("../constants/constants");
 
 const PartiesModel = db.PartiesModel;
 const AccountsModel = db.AccountsModel;
@@ -12,24 +13,63 @@ const SubCategoriesModel = db.SubCategoriesModel;
 
 // ------------------------ || Controllers || ------------------------ //
 
-exports.FinanceYearController = async (payloadUser, payloadBody) => {
+const getTotals = async (startDate, endDate, whereCondition) => {
+	const results = await TransactionsModel.findAll({
+		attributes: ["Action", [Sequelize.fn("SUM", Sequelize.col("AccountAmount")), "TotalAmount"]],
+		where: {
+			...whereCondition,
+			Date: {[Op.between]: [startDate, endDate]},
+		},
+		group: ["Action"],
+		raw: true,
+	});
+
+	const totals = {
+		In: 0,
+		Out: 0,
+		From: 0,
+		Investment: 0,
+		Credit: 0,
+		Debit: 0,
+		To: 0,
+	};
+
+	results.forEach((row) => {
+		if (totals[row.Action] !== undefined) {
+			totals[row.Action] = parseFloat(row.TotalAmount || 0);
+		}
+	});
+
+	return totals;
+};
+
+exports.DashboardController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		let {FilterBy} = payloadBody;
+		let {SelectedYear} = payloadBody;
+
+		let StartDate, EndDate;
+
+		if (SelectedYear) {
+			StartDate = new Date(`${SelectedYear}-01-01`);
+			EndDate = new Date(`${SelectedYear}-12-31`);
+		} else {
+			({StartDate, EndDate} = await durationFindFun("This_Year"));
+		}
 
 		const whereCondition = {
 			UsedBy: UserId,
 			OrgId: OrgId,
 			BranchId: BranchId,
 			isDeleted: false,
+			Date: {[Op.between]: [StartDate, EndDate]},
 		};
 
-		const {StartDate, EndDate} = await durationFindFun("This_Year");
-		const lastYear = await durationFindFun("Last_Year");
+		const lastYear = await durationFindFun("Last_Year", StartDate);
 		const lastMonth = await durationFindFun("Last_Month");
 		const thisMonth = await durationFindFun("This_Month");
-		whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 
+		// Select Year total all Action
 		const results = await TransactionsModel.findOne({
 			attributes: [
 				[fn("YEAR", col("Date")), "duration"],
@@ -43,6 +83,39 @@ exports.FinanceYearController = async (payloadUser, payloadBody) => {
 			group: [fn("YEAR", col("Date"))],
 			order: [[fn("YEAR", col("Date")), "ASC"]],
 			raw: true,
+		});
+
+		// Select graph, income, debit and investment
+		const fetchList = await TransactionsModel.findAll({
+			attributes: [
+				[fn("MONTH", col("Date")), "month"],
+				[fn("MONTHNAME", col("Date")), "monthName"],
+				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action = 'Out' THEN Amount ELSE 0 END")), "totalOut"],
+				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
+				[fn("SUM", literal("CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END")), "totalCredit"],
+				[fn("SUM", literal("CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END")), "totalDebit"],
+			],
+			where: whereCondition,
+			group: [fn("YEAR", col("Date")), fn("MONTH", col("Date"))],
+			order: [
+				[fn("YEAR", col("Date")), "DESC"],
+				[fn("MONTH", col("Date")), "ASC"],
+			],
+			raw: true,
+		});
+
+		const monthBase = AllMonths.map(({month, monthName}) => {
+			const found = fetchList.find((item) => Number(item.month) === month);
+			return {
+				month,
+				monthName,
+				totalIn: found ? found.totalIn : "0.00",
+				totalOut: found ? found.totalOut : "0.00",
+				totalInvestment: found ? found.totalInvestment : "0.00",
+				totalCredit: found ? found.totalCredit : "0.00",
+				totalDebit: found ? found.totalDebit : "0.00",
+			};
 		});
 
 		const lastYearData = await TransactionsModel.findOne({
@@ -101,55 +174,6 @@ exports.FinanceYearController = async (payloadUser, payloadBody) => {
 			raw: true,
 		});
 
-		const allMonths = [
-			{month: 1, monthName: "Jan"},
-			{month: 2, monthName: "Feb"},
-			{month: 3, monthName: "Mar"},
-			{month: 4, monthName: "Apr"},
-			{month: 5, monthName: "May"},
-			{month: 6, monthName: "Jun"},
-			{month: 7, monthName: "Jul"},
-			{month: 8, monthName: "Aug"},
-			{month: 9, monthName: "Sep"},
-			{month: 10, monthName: "Oct"},
-			{month: 11, monthName: "Nov"},
-			{month: 12, monthName: "Dec"},
-		];
-
-		// Your existing DB fetch
-		const fetchList = await TransactionsModel.findAll({
-			attributes: [
-				[fn("MONTH", col("Date")), "month"],
-				[fn("MONTHNAME", col("Date")), "monthName"],
-				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
-				[fn("SUM", literal("CASE WHEN Action = 'Out' THEN Amount ELSE 0 END")), "totalOut"],
-				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
-				[fn("SUM", literal("CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END")), "totalCredit"],
-				[fn("SUM", literal("CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END")), "totalDebit"],
-			],
-			where: {...whereCondition},
-			group: [fn("YEAR", col("Date")), fn("MONTH", col("Date"))],
-			order: [
-				[fn("YEAR", col("Date")), "DESC"],
-				[fn("MONTH", col("Date")), "ASC"],
-			],
-			raw: true,
-		});
-
-		// Merge with allMonths
-		const monthBase = allMonths.map(({month, monthName}) => {
-			const found = fetchList.find((item) => Number(item.month) === month);
-			return {
-				month,
-				monthName,
-				totalIn: found ? found.totalIn : "0.00",
-				totalOut: found ? found.totalOut : "0.00",
-				totalInvestment: found ? found.totalInvestment : "0.00",
-				totalCredit: found ? found.totalCredit : "0.00",
-				totalDebit: found ? found.totalDebit : "0.00",
-			};
-		});
-
 		return {
 			httpCode: SUCCESS_CODE,
 			result: {
@@ -173,23 +197,19 @@ exports.FinanceYearController = async (payloadUser, payloadBody) => {
 	}
 };
 
-exports.AccountController = async (payloadUser, payloadBody) => {
+exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		const {Action, Page, PageSize, FilterBy, SearchKey, AccountId, PartyId, CategoryId, SubCategoryId, Duration} = payloadBody;
+		let {Duration} = payloadBody;
 
-		if (Action) {
-			if (!Page || !PageSize) {
-				return {
-					httpCode: BAD_REQUEST_CODE,
-					result: {
-						status: false,
-						message: "BAD_REQUEST_CODE",
-					},
-				};
-			}
-
-			var {limit, offset} = getPagination(Page, PageSize);
+		if (!Duration) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {
+					status: false,
+					message: "BAD_REQUEST_CODE",
+				},
+			};
 		}
 
 		const whereCondition = {
@@ -197,142 +217,72 @@ exports.AccountController = async (payloadUser, payloadBody) => {
 			OrgId: OrgId,
 			BranchId: BranchId,
 			isDeleted: false,
-			// Action: ["In", "Out", "Credit", "Debit", "Investment", "From"],
+			// Action: {[Op.in]: ["In", "Out" ,  "Investment"]},
 		};
 
-		if (Duration) {
-			const {StartDate, EndDate} = await durationFindFun(Duration);
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		const {StartDate, EndDate} = await durationFindFun("All");
+		whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		let timeDurationFn;
+
+		if (Duration === "DATE") {
+			timeDurationFn = fn("DATE", col("Date"));
+		} else if (Duration === "WEEK") {
+			timeDurationFn = fn("CONCAT", "Week-", fn("WEEK", col("Date")));
+		} else if (Duration === "MONTH") {
+			timeDurationFn = fn("MONTHNAME", col("Date"));
+		} else if (Duration === "YEAR") {
+			timeDurationFn = fn("YEAR", col("Date"));
 		}
 
-		if (AccountId) {
-			whereCondition.AccountId = AccountId;
-		}
-
-		if (PartyId) {
-			whereCondition.PartyId = PartyId;
-		}
-
-		if (CategoryId) {
-			whereCondition.CategoryId = CategoryId;
-		}
-
-		if (SubCategoryId) {
-			whereCondition.SubCategoryId = SubCategoryId;
-		}
-
-		if (SearchKey) {
-			SearchKey?.trim();
-			const fullNameCondition = Sequelize.literal(`CONCAT(fn_party.PartyFirstName,' ', fn_party.PartyLastName) LIKE '%${SearchKey}%'`);
-			whereCondition[Op.or] = [
-				{Action: {[Op.like]: "%" + SearchKey + "%"}},
-				{Amount: {[Op.like]: "%" + SearchKey + "%"}},
-				{Date: {[Op.like]: "%" + SearchKey + "%"}},
-				{"$fn_account.AccountName$": {[Op.like]: "%" + SearchKey + "%"}},
-				{"$fn_category.CategoryName$": {[Op.like]: "%" + SearchKey + "%"}},
-				{"$fn_sub_category.SubCategoriesName$": {[Op.like]: "%" + SearchKey + "%"}},
-				{"$fn_party.PartyFirstName$": {[Op.like]: "%" + SearchKey + "%"}},
-				{"$fn_party.PartyLastName$": {[Op.like]: "%" + SearchKey + "%"}},
-				{"$fn_party.Email$": {[Op.like]: "%" + SearchKey + "%"}},
-				fullNameCondition,
-			];
-		}
-
-		const fetchList = await TransactionsModel.findAll({
+		const results = await TransactionsModel.findAll({
 			attributes: [
-				"TransactionId",
-				"Action",
-				"Date",
-				"CategoryId",
-				"SubCategoryId",
-				"AccountId",
-				"TransferToAccountId",
-				"AccountAmount",
-				[
-					Sequelize.literal(`
-					  CASE 
-						WHEN Action IN ('In', 'Out') THEN CONCAT(fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
-						WHEN Action IN ('Credit', 'Debit') THEN CONCAT(Action, ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName	)
-						WHEN Action IN ('From', 'To') THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
-						WHEN Action = 'Investment' THEN CONCAT('Invest to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
-						ELSE ''
-					  END
-					`),
-					"Details",
-				],
-				[Sequelize.col("fn_category.CategoryName"), "CategoryName"],
-				[Sequelize.col("fn_category.Icon"), "CategoryIcon"],
-				[Sequelize.col("fn_category.Color"), "CategoryColor"],
-				[Sequelize.col("fn_sub_category.SubCategoriesName"), "SubCategoriesName"],
-				[Sequelize.col("fn_sub_category.Icon"), "SubIcon"],
+				[timeDurationFn, "duration"],
+				[fn("SUM", literal(`CASE WHEN Action = 'In' THEN Amount ELSE 0 END`)), "totalIn"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Out' THEN Amount ELSE 0 END`)), "totalOut"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END`)), "totalInvestment"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END`)), "totalCredit"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END`)), "totalDebit"],
 			],
 			where: whereCondition,
-			include: [
-				{
-					model: AccountsModel,
-					attributes: [],
-				},
-				{
-					model: CategoriesModel,
-					attributes: [],
-				},
-				{
-					model: SubCategoriesModel,
-					attributes: [],
-				},
-				{
-					model: PartiesModel,
-					attributes: [],
-				},
-			],
-			limit: limit,
-			offset: offset,
-			order: [["Date", "DESC"]],
+			group: [fn(Duration, col("Date"))],
+			order: [[fn(Duration, col("Date")), "ASC"]],
 			raw: true,
 		});
 
-		const graphList = await TransactionsModel.findAll({
-			attributes: [[Sequelize.fn("SUM", Sequelize.col("AccountAmount")), "Count"], "TransactionId", "Action", "Date", "CategoryId", "SubCategoryId", "AccountId", "TransferToAccountId", "AccountAmount"],
-			where: whereCondition,
-			group: ["Date"],
-			order: [["Date", "ASC"]],
-			raw: true,
+		let cumulativeTotalIn = 0;
+		let cumulativeTotalOut = 0;
+		let cumulativeTotalInvestment = 0;
+		let cumulativeTotalCredit = 0;
+		let cumulativeTotalDebit = 0;
+
+		const updatedResults = results.map((row, index) => {
+			cumulativeTotalIn += parseFloat(row.totalIn);
+			cumulativeTotalOut += parseFloat(row.totalOut);
+			cumulativeTotalInvestment += parseFloat(row.totalInvestment);
+			cumulativeTotalCredit += parseFloat(row.totalCredit);
+			cumulativeTotalDebit += parseFloat(row.totalDebit);
+
+			return {
+				duration: row.duration,
+				totalIn: cumulativeTotalIn.toFixed(2),
+				totalOut: cumulativeTotalOut.toFixed(2),
+				totalInvestment: cumulativeTotalInvestment.toFixed(2),
+				totalCredit: cumulativeTotalCredit.toFixed(2),
+				totalDebit: cumulativeTotalDebit.toFixed(2),
+			};
 		});
 
-		if (Action) {
-			const totalCount = await TransactionsModel.count({
-				where: whereCondition,
-				distinct: true,
-				subQuery: false,
-			});
-
-			let totalPage = Math.ceil(totalCount / limit);
-
-			return {
-				httpCode: SUCCESS_CODE,
-				result: {
-					status: true,
-					message: "SUCCESS",
-					data: {
-						list: fetchList,
-						graphList: graphList,
-						accountDetails,
-						totalRecords: totalCount,
-						totalPages: totalPage,
-						currentPage: parseInt(Page),
-					},
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {
+				status: true,
+				message: "SUCCESS",
+				data: {
+					list: results,
+					increment: updatedResults,
 				},
-			};
-		} else {
-			return {
-				httpCode: SUCCESS_CODE,
-				result: {
-					status: true,
-					message: "SUCCESS",
-					data: {list: fetchList, graphList: graphList},
-				},
-			};
-		}
+			},
+		};
 	} catch (error) {
 		console.log(`\x1b[91m ${error} \x1b[91m`);
 		return {
@@ -345,7 +295,17 @@ exports.AccountController = async (payloadUser, payloadBody) => {
 exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		let {TimeDuration, FilterBy} = payloadBody;
+		let {Duration, FilterBy} = payloadBody;
+
+		if (!Duration) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {
+					status: false,
+					message: "BAD_REQUEST_CODE",
+				},
+			};
+		}
 
 		const whereCondition = {
 			UsedBy: UserId,
@@ -356,15 +316,11 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 
 		let timeDurationFn;
 
-		if (TimeDuration === "WEEK") {
+		if (Duration === "WEEK") {
 			timeDurationFn = fn("CONCAT", "Week-", fn("WEEK", col("Date")));
-			const {StartDate, EndDate} = await durationFindFun("This_Month");
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-		} else if (TimeDuration === "MONTH") {
+		} else if (Duration === "MONTH") {
 			timeDurationFn = fn("MONTHNAME", col("Date"));
-			const {StartDate, EndDate} = await durationFindFun("This_Month");
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-		} else if (TimeDuration === "YEAR") {
+		} else if (Duration === "YEAR") {
 			timeDurationFn = fn("YEAR", col("Date"));
 		}
 
@@ -372,7 +328,7 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 			attributes: [
 				"CategoryId",
 				[timeDurationFn, "duration"],
-				[fn(TimeDuration, col("Date")), "durationKey"],
+				[fn(Duration, col("Date")), "durationKey"],
 				[Sequelize.col("fn_category.Icon"), "Icon"],
 				[Sequelize.col("fn_category.Color"), "Color"],
 				[Sequelize.col("fn_category.CategoryName"), "CategoryName"],
@@ -386,9 +342,9 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 				},
 			],
 			where: whereCondition,
-			group: [fn(TimeDuration, col("Date")), "CategoryId"],
+			group: [fn(Duration, col("Date")), "CategoryId"],
 			order: [
-				[fn(TimeDuration, col("Date")), "DESC"],
+				[fn(Duration, col("Date")), "DESC"],
 				// [fn("SUM", literal("CASE WHEN Action = 'Out' THEN Amount ELSE 0 END")), "DESC"],
 			],
 			raw: true,
@@ -451,7 +407,7 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		let {TimeDuration, FilterBy} = payloadBody;
+		let {Duration, FilterBy} = payloadBody;
 
 		const whereCondition = {
 			UsedBy: UserId,
@@ -463,15 +419,15 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 		let timeDurationFn;
 		let timeDurationKey;
 
-		if (TimeDuration === "WEEK") {
+		if (Duration === "WEEK") {
 			timeDurationFn = fn("CONCAT", "Week-", fn("WEEK", col("Date")));
 			const {StartDate, EndDate} = await durationFindFun("This_Month");
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-		} else if (TimeDuration === "MONTH") {
+		} else if (Duration === "MONTH") {
 			timeDurationFn = fn("MONTHNAME", col("Date"));
 			const {StartDate, EndDate} = await durationFindFun("This_Month");
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-		} else if (TimeDuration === "YEAR") {
+		} else if (Duration === "YEAR") {
 			timeDurationFn = fn("YEAR", col("Date"));
 		}
 
@@ -479,7 +435,7 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 			attributes: [
 				"SubCategoryId",
 				[timeDurationFn, "duration"],
-				[fn(TimeDuration, col("Date")), "durationKey"],
+				[fn(Duration, col("Date")), "durationKey"],
 				[Sequelize.col("fn_category.Color"), "Color"],
 				[Sequelize.col("fn_sub_category.SubCategoriesName"), "SubCategoryName"],
 				[Sequelize.col("fn_sub_category.Icon"), "Icon"],
@@ -497,8 +453,8 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 				},
 			],
 			where: whereCondition,
-			group: [fn(TimeDuration, col("Date")), "SubCategoryId"],
-			order: [[fn(TimeDuration, col("Date")), "DESC"]],
+			group: [fn(Duration, col("Date")), "SubCategoryId"],
+			order: [[fn(Duration, col("Date")), "DESC"]],
 			raw: true,
 		});
 
@@ -557,251 +513,7 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 	}
 };
 
-exports.DataFollController = async (payloadUser, payloadBody) => {
-	try {
-		let {OrgId, BranchId, UserId} = payloadUser;
-		let {TimeDuration, Type, FilterBy} = payloadBody;
-
-		if (!TimeDuration) {
-			return {
-				httpCode: BAD_REQUEST_CODE,
-				result: {
-					status: false,
-					message: "BAD_REQUEST_CODE",
-				},
-			};
-		}
-
-		const whereCondition = {
-			UsedBy: UserId,
-			OrgId: OrgId,
-			BranchId: BranchId,
-			isDeleted: false,
-			// Action: {[Op.in]: ["In", "Out" ,  "Investment"]},
-		};
-
-		let timeDurationFn;
-		let typeObject = ["In", "Out", "Investment"];
-
-		if (Type === "Party") {
-			typeObject = ["Credit", "Debit"];
-		}
-
-		if (TimeDuration === "DATE") {
-			timeDurationFn = fn("DATE", col("Date"));
-			const {StartDate, EndDate} = await durationFindFun("Six_Month");
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-		} else if (TimeDuration === "WEEK") {
-			timeDurationFn = fn("CONCAT", "Week-", fn("WEEK", col("Date")));
-			const {StartDate, EndDate} = await durationFindFun("This_Year");
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-		} else if (TimeDuration === "MONTH") {
-			timeDurationFn = fn("MONTHNAME", col("Date"));
-			const {StartDate, EndDate} = await durationFindFun("This_Year");
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-		} else if (TimeDuration === "YEAR") {
-			timeDurationFn = fn("YEAR", col("Date"));
-		}
-
-		const results = await TransactionsModel.findAll({
-			attributes: [
-				[timeDurationFn, "duration"],
-				[fn("SUM", literal(`CASE WHEN Action = '${typeObject[0]}' THEN Amount ELSE 0 END`)), "totalIn"],
-				[fn("SUM", literal(`CASE WHEN Action = '${typeObject[1]}' THEN Amount ELSE 0 END`)), "totalOut"],
-				[fn("SUM", literal(`CASE WHEN Action = '${typeObject[2]}' THEN Amount ELSE 0 END`)), "totalInvestment"],
-			],
-			where: whereCondition,
-			group: [fn(TimeDuration, col("Date"))],
-			order: [[fn(TimeDuration, col("Date")), "ASC"]],
-			raw: true,
-		});
-
-		let cumulativeTotalIn = 0;
-		let cumulativeTotalOut = 0;
-		let cumulativeTotalInvestment = 0;
-
-		const updatedResults = results.map((row, index) => {
-			cumulativeTotalIn += parseFloat(row.totalIn);
-			cumulativeTotalOut += parseFloat(row.totalOut);
-			cumulativeTotalInvestment += parseFloat(row.totalInvestment);
-
-			return {
-				duration: row.duration,
-				totalIn: cumulativeTotalIn.toFixed(2),
-				totalOut: cumulativeTotalOut.toFixed(2),
-				totalInvestment: cumulativeTotalInvestment.toFixed(2),
-			};
-		});
-
-		return {
-			httpCode: SUCCESS_CODE,
-			result: {
-				status: true,
-				message: "SUCCESS",
-				data: {
-					list: results,
-					increment: updatedResults,
-				},
-			},
-		};
-	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
-		return {
-			httpCode: SERVER_ERROR_CODE,
-			result: {status: false, message: error.message},
-		};
-	}
-};
-
-exports.SingleDataController = async (payloadUser, payloadBody) => {
-	try {
-		let {OrgId, BranchId, UserId} = payloadUser;
-		let {TimeDuration, FilterBy} = payloadBody;
-
-		if (!TimeDuration) {
-			return {
-				httpCode: BAD_REQUEST_CODE,
-				result: {
-					status: false,
-					message: "BAD_REQUEST_CODE",
-				},
-			};
-		}
-
-		const whereCondition = {
-			UsedBy: UserId,
-			OrgId: OrgId,
-			BranchId: BranchId,
-			isDeleted: false,
-		};
-		let groupBy = "AccountId";
-
-		if (FilterBy?.AccountId && FilterBy?.AccountId) {
-			whereCondition.AccountId = {[Op.eq]: FilterBy?.AccountId};
-			groupBy = "AccountId";
-		}
-
-		if (FilterBy?.CategoryId) {
-			whereCondition.CategoryId = {[Op.eq]: FilterBy?.CategoryId};
-			groupBy = "CategoryId";
-		}
-
-		if (FilterBy?.SubCategoryId) {
-			whereCondition.SubCategoryId = {[Op.eq]: FilterBy?.SubCategoryId};
-			groupBy = "SubCategoryId";
-		}
-
-		if (FilterBy?.PartyId) {
-			whereCondition.PartyId = {[Op.eq]: FilterBy?.PartyId};
-			groupBy = "PartyId";
-		}
-
-		let timeDurationFn;
-
-		if (TimeDuration === "DATE") {
-			timeDurationFn = fn("DATE", col("Date"));
-			const {StartDate, EndDate} = await durationFindFun("Six_Month");
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-		} else if (TimeDuration === "WEEK") {
-			timeDurationFn = fn("CONCAT", "Week-", fn("WEEK", col("Date")));
-			const {StartDate, EndDate} = await durationFindFun("This_Year");
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-		} else if (TimeDuration === "MONTH") {
-			timeDurationFn = fn("MONTHNAME", col("Date"));
-			const {StartDate, EndDate} = await durationFindFun("This_Year");
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-		} else if (TimeDuration === "YEAR") {
-			timeDurationFn = fn("YEAR", col("Date"));
-		}
-
-		const results = await TransactionsModel.findAll({
-			attributes: [
-				[timeDurationFn, "duration"],
-				[fn("SUM", literal("CASE WHEN Action = 'In' OR Action = 'To' OR Action ='Credit' THEN Amount ELSE 0 END")), "totalIn"],
-				[fn("SUM", literal("CASE WHEN Action = 'Out' OR Action = 'From' OR Action = 'Investment' OR Action ='Debit' THEN Amount ELSE 0 END")), "totalOut"],
-			],
-			where: whereCondition,
-			group: [fn(TimeDuration, col("Date")), groupBy],
-			order: [[fn(TimeDuration, col("Date")), "ASC"]],
-			raw: true,
-		});
-
-		return {
-			httpCode: SUCCESS_CODE,
-			result: {
-				status: true,
-				message: "SUCCESS",
-				data: results,
-			},
-		};
-	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
-		return {
-			httpCode: SERVER_ERROR_CODE,
-			result: {status: false, message: error.message},
-		};
-	}
-};
-
-exports.DashboardController = async (payloadUser, payloadBody) => {
-	try {
-		let {OrgId, BranchId, UserId} = payloadUser;
-
-		const whereCondition = {
-			UsedBy: UserId,
-			OrgId: OrgId,
-			BranchId: BranchId,
-			isDeleted: false,
-		};
-
-		return {
-			httpCode: SUCCESS_CODE,
-			result: {
-				status: true,
-				message: "SUCCESS",
-				data: results,
-			},
-		};
-	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
-		return {
-			httpCode: SERVER_ERROR_CODE,
-			result: {status: false, message: error.message},
-		};
-	}
-};
-
-const getTotals = async (startDate, endDate, whereCondition) => {
-	const results = await TransactionsModel.findAll({
-		attributes: ["Action", [Sequelize.fn("SUM", Sequelize.col("AccountAmount")), "TotalAmount"]],
-		where: {
-			...whereCondition,
-			Date: {[Op.between]: [startDate, endDate]},
-		},
-		group: ["Action"],
-		raw: true,
-	});
-
-	const totals = {
-		In: 0,
-		Out: 0,
-		From: 0,
-		Investment: 0,
-		Credit: 0,
-		Debit: 0,
-		To: 0,
-	};
-
-	results.forEach((row) => {
-		if (totals[row.Action] !== undefined) {
-			totals[row.Action] = parseFloat(row.TotalAmount || 0);
-		}
-	});
-
-	return totals;
-};
-
-exports.AnalystController = async (payloadUser, payloadBody) => {
+exports.RecodeListController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
 		const {Action, Page, PageSize, FilterBy, SearchKey, AccountId, PartyId, CategoryId, SubCategoryId, Duration} = payloadBody;
@@ -859,7 +571,6 @@ exports.AnalystController = async (payloadUser, payloadBody) => {
 		}
 
 		if (CategoryId) {
-			
 			whereCondition.CategoryId = CategoryId;
 
 			subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.CategoryId = fn_transactions.CategoryId AND
@@ -870,7 +581,6 @@ exports.AnalystController = async (payloadUser, payloadBody) => {
 		}
 
 		if (SubCategoryId) {
-			
 			whereCondition.SubCategoryId = SubCategoryId;
 
 			subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.SubCategoryId = fn_transactions.SubCategoryId AND
@@ -1025,6 +735,109 @@ exports.AnalystController = async (payloadUser, payloadBody) => {
 				},
 			};
 		}
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
+exports.BalanceFollController = async (payloadUser, payloadBody) => {
+	try {
+		let {OrgId, BranchId, UserId} = payloadUser;
+		const {Duration} = payloadBody;
+
+		const whereCondition = {
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+		};
+
+		//  If you want to account base
+		const accounts = await AccountsModel.findAll({
+			where: {...whereCondition, TypeId: {[Op.in]: [1, 2]}},
+			raw: true,
+		});
+
+		const allAccountIds = accounts.map((acc) => acc.AccountId);
+
+		let subQuery = `(SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE  t2.AccountId = fn_transactions.AccountId AND
+						  (
+							t2.Date < fn_transactions.Date OR
+							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+						  ) AND  t2.isDeleted = false ) + ( SELECT StartAmount FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.AccountId )`;
+
+		const transactions = await TransactionsModel.findAll({
+			where: {
+				...whereCondition,
+				Action: {[Op.in]: ["In", "Out", "Debit", "Credit", "To", "From"]},
+				AccountId: {[Op.in]: allAccountIds},
+			},
+			attributes: [[Sequelize.literal(subQuery), "Balance"], "Date", "AccountId", "AccountAmount"],
+			order: [["Date", "DESC"]],
+			raw: true,
+		});
+
+		const formatDate = (d) => new Date(d).toISOString().slice(0, 10);
+
+		const transactionMap = {};
+		transactions.forEach((tx) => {
+			const accId = tx.AccountId;
+			const date = formatDate(tx.Date);
+			const balance = parseFloat(tx.Balance);
+			if (!transactionMap[accId]) transactionMap[accId] = [];
+			transactionMap[accId].push({date, balance});
+		});
+
+		const allDates = [...new Set(transactions.map((tx) => formatDate(tx.Date)))].sort();
+
+		const dailyBalanceMap = {};
+
+		for (const date of allDates) {
+			dailyBalanceMap[date] = {};
+
+			for (const acc of accounts) {
+				const accId = acc.AccountId;
+				const accCreatedAt = formatDate(acc.createdAt);
+
+				if (accCreatedAt > date) {
+					dailyBalanceMap[date][accId] = 0;
+					continue;
+				}
+
+				const txs = (transactionMap[accId] || []).filter((t) => t.date <= date).sort((a, b) => b.date.localeCompare(a.date)); // latest first
+
+				if (txs.length > 0) {
+					dailyBalanceMap[date][accId] = txs[0].balance;
+				} else {
+					dailyBalanceMap[date][accId] = parseFloat(acc.StartAmount);
+				}
+			}
+		}
+
+		let graphList = [];
+
+		for (const date in dailyBalanceMap) {
+			const accounts = dailyBalanceMap[date];
+			let total = 0;
+			for (const accId in accounts) {
+				total += accounts[accId];
+			}
+			graphList.push({Date: date, Count: total});
+			dailyBalanceMap[date] = total;
+		}
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {
+				status: true,
+				message: "SUCCESS",
+				data: graphList,
+			},
+		};
 	} catch (error) {
 		console.log(`\x1b[91m ${error} \x1b[91m`);
 		return {
