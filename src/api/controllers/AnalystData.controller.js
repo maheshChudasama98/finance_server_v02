@@ -295,7 +295,7 @@ exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		let {Duration, FilterBy} = payloadBody;
+		let {Duration, Limit, SelectedDate} = payloadBody;
 
 		if (!Duration) {
 			return {
@@ -313,6 +313,14 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 			BranchId: BranchId,
 			isDeleted: false,
 		};
+
+		if (SelectedDate) {
+			const {StartDate, EndDate} = await durationFindFun("This_Month", SelectedDate);
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else {
+			const {StartDate, EndDate} = await durationFindFun("This_Month");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		}
 
 		let timeDurationFn;
 
@@ -383,8 +391,8 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 		const fetchList = Object.values(groupedByMonth).map((monthData) => ({
 			duration: monthData.duration,
 			durationKey: monthData.durationKey,
-			topTenIn: monthData.topTenIn.sort((a, b) => b.totalIn - a.totalIn).slice(0, FilterBy?.limit || 10),
-			topTenOut: monthData.topTenOut.sort((a, b) => b.totalOut - a.totalOut).slice(0, FilterBy?.limit || 10),
+			topTenIn: monthData.topTenIn.sort((a, b) => b.totalIn - a.totalIn).slice(0, Limit || 10),
+			topTenOut: monthData.topTenOut.sort((a, b) => b.totalOut - a.totalOut).slice(0, Limit || 10),
 		}));
 
 		return {
@@ -407,7 +415,9 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		let {Duration, FilterBy} = payloadBody;
+		let {Duration, SelectedDate, Limit} = payloadBody;
+
+		let timeDurationFn;
 
 		const whereCondition = {
 			UsedBy: UserId,
@@ -416,17 +426,18 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 			isDeleted: false,
 		};
 
-		let timeDurationFn;
-		let timeDurationKey;
+		if (SelectedDate) {
+			const {StartDate, EndDate} = await durationFindFun("This_Month", SelectedDate);
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else {
+			const {StartDate, EndDate} = await durationFindFun("This_Month");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		}
 
 		if (Duration === "WEEK") {
 			timeDurationFn = fn("CONCAT", "Week-", fn("WEEK", col("Date")));
-			const {StartDate, EndDate} = await durationFindFun("This_Month");
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		} else if (Duration === "MONTH") {
 			timeDurationFn = fn("MONTHNAME", col("Date"));
-			const {StartDate, EndDate} = await durationFindFun("This_Month");
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		} else if (Duration === "YEAR") {
 			timeDurationFn = fn("YEAR", col("Date"));
 		}
@@ -492,8 +503,8 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 		const fetchList = Object.values(groupedByMonth).map((monthData) => ({
 			duration: monthData.duration,
 			durationKey: monthData.durationKey,
-			topTenIn: monthData.topTenIn.sort((a, b) => b.totalIn - a.totalIn).slice(0, FilterBy?.limit || 10),
-			topTenOut: monthData.topTenOut.sort((a, b) => b.totalOut - a.totalOut).slice(0, FilterBy?.limit || 10),
+			topTenIn: monthData.topTenIn.sort((a, b) => b.totalIn - a.totalIn).slice(0, Limit || 10),
+			topTenOut: monthData.topTenOut.sort((a, b) => b.totalOut - a.totalOut).slice(0, Limit || 10),
 		}));
 
 		return {
@@ -830,6 +841,10 @@ exports.BalanceFollController = async (payloadUser, payloadBody) => {
 			dailyBalanceMap[date] = total;
 		}
 
+		if (Duration) {
+			const {StartDate, EndDate} = await durationFindFun(Duration);
+			graphList = graphList.filter((entry) => entry.Date >= StartDate && entry.Date <= EndDate);
+		}
 		return {
 			httpCode: SUCCESS_CODE,
 			result: {
