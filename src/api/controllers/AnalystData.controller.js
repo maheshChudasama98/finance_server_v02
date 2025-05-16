@@ -784,7 +784,7 @@ exports.BalanceFollController = async (payloadUser, payloadBody) => {
 		const transactions = await TransactionsModel.findAll({
 			where: {
 				...whereCondition,
-				Action: {[Op.in]: ["In", "Out", "Debit", "Credit", "To", "From"]},
+				// Action: {[Op.in]: ["In", "Out", "Debit", "Credit", "To", "From"]},
 				AccountId: {[Op.in]: allAccountIds},
 			},
 			attributes: [[Sequelize.literal(subQuery), "Balance"], "Date", "AccountId", "AccountAmount"],
