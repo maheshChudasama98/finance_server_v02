@@ -235,6 +235,8 @@ exports.UserListController = async (payloadUser, payloadBody) => {
 		const {OrgId, BranchId, UserId, RoleId} = payloadUser;
 		const {Action, Page, PageSize, FilterBy, SearchKey} = payloadBody;
 
+		console.log(payloadUser, "payloadUser");
+
 		if (Action) {
 			if (!Page || !PageSize) {
 				return {
@@ -250,21 +252,9 @@ exports.UserListController = async (payloadUser, payloadBody) => {
 		}
 
 		const whereCondition = {
-			// OrgId: OrgId,
-			// BranchId: BranchId,
 			isDeleted: false,
+			[Op.or]: [{"$orgusers.OrgId$": {[Op.eq]: OrgId}}, {"$orgusers.BranchId$": {[Op.eq]: BranchId}}],
 		};
-
-		// if (superAdminRoleId !== payloadUser?.UserId) {
-		// 	whereCondition.OrgId = payloadUser?.OrgId;
-		// }
-
-		if (RoleId !== superAdminRoleId) {
-			// whereCondition[Op.or] =[
-			// 	{ "$orgusers.OrgId": { [Op.eq]: OrgId } },
-			// 	{ "$orgusers.BranchId": { [Op.eq]: BranchId } },
-			// ]
-		}
 
 		const fetchList = await UserModel.findAll({
 			attributes: [
@@ -387,12 +377,12 @@ exports.UserModifyController = async (payloadUser, payloadBody, payloadFile) => 
 			if (target?.UserId) {
 				findBranchInUser = target?.orgusers?.find((item) => item.OrgId === OrgId && item.BranchId === BranchId);
 
-				if (!findBranchInUser?.isDeleted) {
+				if (findBranchInUser?.OrgUserId && !findBranchInUser?.isDeleted) {
 					return {
 						httpCode: SUCCESS_CODE,
 						result: {status: false, message: "DUPLICATE"},
 					};
-				} else {
+				} else if (findBranchInUser?.OrgUserId) {
 					await OrgUsersModel.update(
 						{isDeleted: false, RoleId: RoleId},
 						{
@@ -401,6 +391,21 @@ exports.UserModifyController = async (payloadUser, payloadBody, payloadFile) => 
 							},
 						}
 					);
+
+					return {
+						httpCode: SUCCESS_CODE,
+						result: {status: true, message: "USER_CREATED"},
+					};
+				} else {
+					await OrgUsersModel.create({
+						OrgId: OrgId,
+						BranchId: BranchId,
+						UserId: target?.UserId,
+						RoleId: RoleId,
+						DefaultOrg: false,
+					});
+
+					await UserBasedDefaultCategory(target?.UserId, OrgId, BranchId);
 
 					return {
 						httpCode: SUCCESS_CODE,
@@ -434,7 +439,7 @@ exports.UserModifyController = async (payloadUser, payloadBody, payloadFile) => 
 				BranchId: BranchId,
 				UserId: NewUser?.UserId,
 				RoleId: RoleId,
-				DefaultOrg: false,
+				DefaultOrg: true,
 			});
 
 			await UserBasedDefaultCategory(NewUser?.UserId, OrgId, BranchId);
@@ -513,47 +518,47 @@ exports.UserRemoveController = async (payloadUser, payloadQuery) => {
 		const {OrgId, BranchId, UserId, RoleId} = payloadUser;
 		const {RemoveId} = payloadQuery;
 
-		if (RoleId === superAdminRoleId) {
-			await UserModel.update(
-				{
-					isDeleted: true,
-					isActive: false,
-				},
-				{
-					where: {
-						OrgId: OrgId,
-						BranchId: BranchId,
-						UserId: RemoveId,
-					},
-				}
-			);
+		// if (RoleId === superAdminRoleId) {
+		// 	await UserModel.update(
+		// 		{
+		// 			isDeleted: true,
+		// 			isActive: false,
+		// 		},
+		// 		{
+		// 			where: {
+		// 				OrgId: OrgId,
+		// 				BranchId: BranchId,
+		// 				UserId: RemoveId,
+		// 			},
+		// 		}
+		// 	);
 
-			await OrgUsersModel.update(
-				{
-					isDeleted: true,
-					isActive: false,
+		// 	await OrgUsersModel.update(
+		// 		{
+		// 			isDeleted: true,
+		// 			isActive: false,
+		// 		},
+		// 		{
+		// 			where: {
+		// 				UserId: RemoveId,
+		// 			},
+		// 		}
+		// 	);
+		// } else {
+		await OrgUsersModel.update(
+			{
+				isDeleted: true,
+				isActive: false,
+			},
+			{
+				where: {
+					OrgId: OrgId,
+					BranchId: BranchId,
+					UserId: RemoveId,
 				},
-				{
-					where: {
-						UserId: RemoveId,
-					},
-				}
-			);
-		} else {
-			await OrgUsersModel.update(
-				{
-					isDeleted: true,
-					isActive: false,
-				},
-				{
-					where: {
-						OrgId: OrgId,
-						BranchId: BranchId,
-						UserId: RemoveId,
-					},
-				}
-			);
-		}
+			}
+		);
+		// }
 		return {
 			httpCode: SUCCESS_CODE,
 			result: {

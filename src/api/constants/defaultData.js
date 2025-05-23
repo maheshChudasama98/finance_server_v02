@@ -98,6 +98,12 @@ module.exports.modulesList = [
 		Router: "/setting",
 		Icon: "fa-solid fa-cog",
 	},
+	{
+		ModulesName: "Analytics",
+		Description: "Analytics ",
+		Router: "/analytics",
+		Icon: "fa-solid fa-chart-pie",
+	},
 ];
 
 module.exports.defaultCategoryList = [

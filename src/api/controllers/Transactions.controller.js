@@ -345,32 +345,6 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
 			];
 		}
 
-		if (FilterBy?.StartDate && FilterBy?.EndDate) {
-			const StartDate = new Date(FilterBy.StartDate);
-			const EndDate = new Date(FilterBy.EndDate);
-
-			if (StartDate.getTime() === EndDate.getTime()) {
-				EndDate.setHours(23, 59, 59, 999);
-			}
-
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-		} else if (FilterBy?.StartDate) {
-			whereCondition.Date = {[Op.gte]: new Date(FilterBy.StartDate)};
-		} else if (FilterBy?.EndDate) {
-			const EndDate = new Date(FilterBy.EndDate);
-			EndDate.setHours(23, 59, 59, 999);
-			whereCondition.Date = {[Op.lte]: EndDate};
-		} else if (SearchKey || Object.keys(FilterBy).length > 0) {
-			whereCondition.Date = {[Op.gte]: new Date("2024-01-01")};
-		} else {
-			const {StartDate, EndDate} = await durationFindFun(Duration || "Last_Thirty_Days");
-			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
-
-			if (Duration == "All") {
-				delete whereCondition.Date;
-			}
-		}
-
 		if (FilterBy?.AccountsIds && FilterBy?.AccountsIds?.length > 0) {
 			whereCondition.AccountId = {[Op.in]: FilterBy?.AccountsIds};
 		}
@@ -411,6 +385,30 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
 			whereCondition[Op.and].push({
 				[Op.or]: tagConditions,
 			});
+		}
+
+		if (FilterBy?.StartDate && FilterBy?.EndDate) {
+			const StartDate = new Date(FilterBy.StartDate);
+			const EndDate = new Date(FilterBy.EndDate);
+
+			if (StartDate.getTime() === EndDate.getTime()) {
+				EndDate.setHours(23, 59, 59, 999);
+			}
+
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (FilterBy?.StartDate) {
+			whereCondition.Date = {[Op.gte]: new Date(FilterBy.StartDate)};
+		} else if (FilterBy?.EndDate) {
+			const EndDate = new Date(FilterBy.EndDate);
+			EndDate.setHours(23, 59, 59, 999);
+			whereCondition.Date = {[Op.lte]: EndDate};
+		} else {
+			const {StartDate, EndDate} = await durationFindFun(Duration || "Last_Thirty_Days");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+
+			if (Duration == "All") {
+				delete whereCondition.Date;
+			}
 		}
 
 		const fetchList = await TransactionsModel.findAll({

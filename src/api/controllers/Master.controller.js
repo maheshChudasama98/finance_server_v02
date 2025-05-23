@@ -650,21 +650,21 @@ exports.LabelsFetchListController = async (payloadUser, payloadBody) => {
 				"isActive",
 				"createdAt",
 				"updatedAt",
-				// [
-				// 	Sequelize.literal(`(
-        //                 SELECT JSON_OBJECT(
-        //                     'TotalInCome', SUM(CASE WHEN fn_transactions.Action = 'In' AND fn_transactions.Action = 'Debit' THEN fn_transactions.AccountAmount ELSE 0 END),
-        //                     'TotalExpense', SUM(CASE WHEN fn_transactions.Action = 'Out' AND fn_transactions.Action = 'Credit' THEN fn_transactions.AccountAmount ELSE 0 END),
-        //                     'TotalIn', SUM(CASE WHEN fn_transactions.Action IN ('In', 'To', 'Debit') THEN fn_transactions.AccountAmount ELSE 0 END),
-        //                     'TotalOut', SUM(CASE WHEN fn_transactions.Action IN ('Out', 'From', 'Investment', 'Credit') THEN fn_transactions.AccountAmount ELSE 0 END)
-        //                 )
-        //                 FROM fn_transactions
-        //                 WHERE fn_transactions.AccountId = fn_accounts.AccountId
-        //                 AND fn_transactions.isDeleted = false
-        //                 AND fn_accounts.isDeleted = false
-        //             )`),
-				// 	"TransactionSummary",
-				// ],
+					// [
+					// 	Sequelize.literal(`(
+			//                 SELECT JSON_OBJECT(
+			//                     'TotalInCome', SUM(CASE WHEN fn_transactions.Action = 'In' AND fn_transactions.Action = 'Debit' THEN fn_transactions.AccountAmount ELSE 0 END),
+			//                     'TotalExpense', SUM(CASE WHEN fn_transactions.Action = 'Out' AND fn_transactions.Action = 'Credit' THEN fn_transactions.AccountAmount ELSE 0 END),
+			//                     'TotalIn', SUM(CASE WHEN fn_transactions.Action IN ('In', 'To', 'Debit') THEN fn_transactions.AccountAmount ELSE 0 END),
+			//                     'TotalOut', SUM(CASE WHEN fn_transactions.Action IN ('Out', 'From', 'Investment', 'Credit') THEN fn_transactions.AccountAmount ELSE 0 END)
+			//                 )
+			//                 FROM fn_transactions
+			//                 WHERE fn_transactions.AccountId = fn_accounts.AccountId
+			//                 AND fn_transactions.isDeleted = false
+			//                 AND fn_accounts.isDeleted = false
+			//             )`),
+					// 	"TransactionSummary",
+					// ],
 			],
 			where: whereCondition,
 			limit: limit,
