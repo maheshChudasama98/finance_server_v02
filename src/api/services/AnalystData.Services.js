@@ -61,10 +61,20 @@ exports.RecodeListService = async (req, res) => {
 	});
 };
 
-
 exports.BalanceFollService = async (req, res) => {
 	const body = DevelopMood ? req.body : await decrypt(req.body?.key);
 	const {httpCode, result} = await Controller.BalanceFollController(req?.user, body);
+
+	return res.status(httpCode).send({
+		status: result?.status,
+		message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+		data: DevelopMood ? result?.data : encrypt(result?.data),
+	});
+};
+
+exports.PerformanceService = async (req, res) => {
+	const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+	const {httpCode, result} = await Controller.PerformanceController(req?.user, body);
 
 	return res.status(httpCode).send({
 		status: result?.status,

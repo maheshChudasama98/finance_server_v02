@@ -4,6 +4,7 @@ const {Op, Sequelize, fn, col, literal} = require("sequelize");
 
 const db = require("../models/index");
 const {AllMonths} = require("../constants/constants");
+const {sequelize} = require("../../configs/Database.config");
 
 const PartiesModel = db.PartiesModel;
 const AccountsModel = db.AccountsModel;
@@ -200,7 +201,7 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		let {Duration} = payloadBody;
+		const {AccountId, PartyId, CategoryId, SubCategoryId, Duration} = payloadBody;
 
 		if (!Duration) {
 			return {
@@ -217,8 +218,23 @@ exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 			OrgId: OrgId,
 			BranchId: BranchId,
 			isDeleted: false,
-			// Action: {[Op.in]: ["In", "Out" ,  "Investment"]},
 		};
+
+		if (AccountId) {
+			whereCondition.AccountId = AccountId;
+		}
+
+		if (PartyId) {
+			whereCondition.PartyId = PartyId;
+		}
+
+		if (CategoryId) {
+			whereCondition.CategoryId = CategoryId;
+		}
+
+		if (SubCategoryId) {
+			whereCondition.SubCategoryId = SubCategoryId;
+		}
 
 		const {StartDate, EndDate} = await durationFindFun("All");
 		whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
@@ -549,7 +565,7 @@ exports.RecodeListController = async (payloadUser, payloadBody) => {
 			BranchId: BranchId,
 			isDeleted: false,
 		};
-		let subQuery = ` ( SELECT  SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE  t2.AccountId = fn_transactions.AccountId AND
+		let subQuery = `( SELECT  SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE  t2.AccountId = fn_transactions.AccountId AND
 						  (
 							t2.Date < fn_transactions.Date OR
 							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
@@ -851,6 +867,222 @@ exports.BalanceFollController = async (payloadUser, payloadBody) => {
 				status: true,
 				message: "SUCCESS",
 				data: graphList,
+			},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
+exports.PerformanceController = async (payloadUser, payloadBody) => {
+	try {
+		let {OrgId, BranchId, UserId} = payloadUser;
+		const {AccountId, PartyId, CategoryId, SubCategoryId, Duration} = payloadBody;
+
+		if (!Duration) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {
+					status: false,
+					message: "BAD_REQUEST_CODE",
+				},
+			};
+		}
+
+		const whereCondition = {
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+		};
+
+		let subQuery = `( SELECT  SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE  t2.AccountId = fn_transactions.AccountId AND
+						  (
+							t2.Date < fn_transactions.Date OR
+							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+						  ) AND  t2.isDeleted = false ) + ( SELECT StartAmount FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.AccountId )`;
+
+		if (AccountId) {
+			whereCondition.AccountId = AccountId;
+		}
+
+		if (PartyId) {
+			whereCondition.PartyId = PartyId;
+
+			subQuery = `(
+				(SELECT StartAmount FROM fn_parties WHERE fn_parties.PartyId = fn_transactions.PartyId) - 
+				(SELECT SUM(t2.AccountAmount)
+				 FROM fn_transactions t2
+				 WHERE t2.PartyId = fn_transactions.PartyId
+				   AND (
+					 t2.Date < fn_transactions.Date OR
+					 (t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+				   )
+				   AND t2.isDeleted = false
+				)
+			  )`;
+		}
+
+		if (CategoryId) {
+			whereCondition.CategoryId = CategoryId;
+
+			subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.CategoryId = fn_transactions.CategoryId AND
+						  (
+							t2.Date < fn_transactions.Date OR
+							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+						  ) AND  t2.isDeleted = false ) + 0`;
+		}
+
+		if (SubCategoryId) {
+			whereCondition.SubCategoryId = SubCategoryId;
+
+			subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.SubCategoryId = fn_transactions.SubCategoryId AND
+						  (
+							t2.Date < fn_transactions.Date OR
+							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+						  ) AND  t2.isDeleted = false ) + 0`;
+		}
+
+		let timeDurationFn;
+
+		if (Duration === "DATE") {
+			timeDurationFn = fn("DATE", col("Date"));
+			const {StartDate, EndDate} = await durationFindFun("This_Year");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (Duration === "WEEK") {
+			timeDurationFn = fn("CONCAT", "Week-", fn("WEEK", col("Date")));
+			const {StartDate, EndDate} = await durationFindFun("This_Year");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (Duration === "MONTH") {
+			timeDurationFn = fn("MONTHNAME", col("Date"));
+			const {StartDate, EndDate} = await durationFindFun("This_Year");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (Duration === "YEAR") {
+			timeDurationFn = fn("YEAR", col("Date"));
+			const {StartDate, EndDate} = await durationFindFun("All");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		}
+
+		const results = await TransactionsModel.findAll({
+			attributes: [
+				[timeDurationFn, "duration"],
+				[fn("SUM", literal(`CASE WHEN Action = 'In' OR  Action = 'To' THEN Amount ELSE 0 END`)), "totalIn"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Out' OR  Action = 'From' OR Action = 'Investment' THEN Amount ELSE 0 END`)), "totalOut"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END`)), "totalDebit"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END`)), "totalCredit"],
+			],
+			where: whereCondition,
+			group: [fn(Duration, col("Date"))],
+			order: [[fn(Duration, col("Date")), "DESC"]],
+			raw: true,
+		});
+
+		let cumulativeTotalIn = 0;
+		let cumulativeTotalOut = 0;
+		let cumulativeTotalDebit = 0;
+		let cumulativeTotalCredit = 0;
+
+		const combinedResults = [];
+
+		for (const row of results) {
+			const durationValue = row.duration;
+
+			cumulativeTotalIn += parseFloat(row.totalIn);
+			cumulativeTotalOut += parseFloat(row.totalOut);
+			cumulativeTotalDebit += parseFloat(row.totalDebit);
+			cumulativeTotalCredit += parseFloat(row.totalCredit);
+
+			// Clone base condition
+			let childWhereCondition = {...whereCondition};
+
+			// Adjust condition for the current duration
+
+			if (Duration === "DATE") {
+				childWhereCondition.Date = sequelize.where(fn("DATE", col("Date")), durationValue);
+			} else if (Duration === "WEEK") {
+				childWhereCondition[Op.and] = [...(childWhereCondition[Op.and] || []), sequelize.where(fn("WEEK", col("Date")), durationValue.split("-")[1])];
+			} else if (Duration === "MONTH") {
+				childWhereCondition[Op.and] = [...(childWhereCondition[Op.and] || []), sequelize.where(fn("MONTHNAME", col("Date")), durationValue)];
+			} else if (Duration === "YEAR") {
+				childWhereCondition[Op.and] = [...(childWhereCondition[Op.and] || []), sequelize.where(fn("YEAR", col("Date")), durationValue)];
+			}
+
+			const childRecords = await TransactionsModel.findAll({
+				attributes: [
+					"TransactionId",
+					"Action",
+					"Date",
+					"Amount",
+					"AccountId",
+					"CategoryId",
+					"SubCategoryId",
+					"TransferToAccountId",
+					"AccountAmount",
+					[
+						Sequelize.literal(`
+					  CASE 
+						WHEN Action IN ('In', 'Out') THEN CONCAT(fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+						WHEN Action IN ('Credit', 'Debit') THEN CONCAT(Action, ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+						WHEN Action IN ('From', 'To') THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+						WHEN Action = 'Investment' THEN CONCAT('Invest to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+						ELSE ''
+					  END
+					`),
+						"Details",
+					],
+					[Sequelize.literal(subQuery), "Balance"],
+					[Sequelize.col("fn_category.CategoryName"), "CategoryName"],
+					[Sequelize.col("fn_category.Icon"), "CategoryIcon"],
+					[Sequelize.col("fn_category.Color"), "CategoryColor"],
+					[Sequelize.col("fn_sub_category.SubCategoriesName"), "SubCategoriesName"],
+					[Sequelize.col("fn_sub_category.Icon"), "SubIcon"],
+				],
+				where: childWhereCondition,
+				include: [
+					{
+						model: AccountsModel,
+						attributes: [],
+					},
+					{
+						model: CategoriesModel,
+						attributes: [],
+					},
+					{
+						model: SubCategoriesModel,
+						attributes: [],
+					},
+					{
+						model: PartiesModel,
+						attributes: [],
+					},
+				],
+				raw: true,
+				order: [["Date", "DESC"]],
+			});
+
+			// Push to final list
+			combinedResults.push({
+				duration: durationValue,
+				totalIn: row.totalIn,
+				totalOut: row.totalOut,
+				totalDebit: row.totalDebit,
+				totalCredit: row.totalCredit,
+				child: childRecords,
+			});
+		}
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {
+				status: true,
+				message: "SUCCESS",
+				data: {
+					list: combinedResults,
+				},
 			},
 		};
 	} catch (error) {
