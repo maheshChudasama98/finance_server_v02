@@ -881,7 +881,7 @@ exports.BalanceFollController = async (payloadUser, payloadBody) => {
 exports.PerformanceController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		const {AccountId, PartyId, CategoryId, SubCategoryId, Duration} = payloadBody;
+		const {AccountId, PartyId, CategoryId, SubCategoryId, Duration, SelectedDate} = payloadBody;
 
 		if (!Duration) {
 			return {
@@ -951,19 +951,19 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 
 		if (Duration === "DATE") {
 			timeDurationFn = fn("DATE", col("Date"));
-			const {StartDate, EndDate} = await durationFindFun("This_Year");
+			const {StartDate, EndDate} = await durationFindFun("This_Year", SelectedDate);
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		} else if (Duration === "WEEK") {
 			timeDurationFn = fn("CONCAT", "Week-", fn("WEEK", col("Date")));
-			const {StartDate, EndDate} = await durationFindFun("This_Year");
+			const {StartDate, EndDate} = await durationFindFun("This_Year", SelectedDate);
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		} else if (Duration === "MONTH") {
 			timeDurationFn = fn("MONTHNAME", col("Date"));
-			const {StartDate, EndDate} = await durationFindFun("This_Year");
+			const {StartDate, EndDate} = await durationFindFun("This_Year", SelectedDate);
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		} else if (Duration === "YEAR") {
 			timeDurationFn = fn("YEAR", col("Date"));
-			const {StartDate, EndDate} = await durationFindFun("All");
+			const {StartDate, EndDate} = await durationFindFun("All", SelectedDate);
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		}
 
@@ -1040,6 +1040,8 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 					[Sequelize.col("fn_category.Color"), "CategoryColor"],
 					[Sequelize.col("fn_sub_category.SubCategoriesName"), "SubCategoriesName"],
 					[Sequelize.col("fn_sub_category.Icon"), "SubIcon"],
+					[Sequelize.col("fn_account.AccountName"), "AccountName"],
+					[Sequelize.col("fn_account.Color"), "AccountColor"],
 				],
 				where: childWhereCondition,
 				include: [
@@ -1083,6 +1085,311 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 				data: {
 					list: combinedResults,
 				},
+			},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
+exports.MonthlyReportController = async (payloadUser, payloadBody) => {
+	try {
+		let {OrgId, BranchId, UserId} = payloadUser;
+		const {SelectedDate} = payloadBody;
+
+		if (!SelectedDate) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {
+					status: false,
+					message: "BAD_REQUEST_CODE",
+				},
+			};
+		}
+
+		// const {StartDate, EndDate} = await durationFindFun("Last_Month", SelectedDate);
+		const {StartDate, EndDate} = await durationFindFun("This_Month", SelectedDate);
+
+		const whereCondition = {
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+			Action: {[Op.not]: "To"},
+			Date: {[Op.between]: [StartDate, EndDate]},
+		};
+
+		const fetchList = await TransactionsModel.findAll({
+			attributes: [
+				"TransactionId",
+				"Action",
+				"Date",
+				"Amount",
+				"CategoryId",
+				"SubCategoryId",
+				"AccountId",
+				"TransferToAccountId",
+				"ParentTransactionId",
+				"PartyId",
+				"AccountAmount",
+				"PartyAmount",
+				"Description",
+				"Tags",
+				"isDeleted",
+				"UsedBy",
+				"OrgId",
+				"BranchId",
+				"createdAt",
+				"updatedAt",
+				[Sequelize.col("fn_category.CategoryName"), "CategoryName"],
+				[Sequelize.col("fn_category.Icon"), "CategoryIcon"],
+				[Sequelize.col("fn_category.Icon"), "CategoryColor"],
+				[Sequelize.col("fn_sub_category.SubCategoriesName"), "SubCategoriesName"],
+				[
+					Sequelize.literal(`(
+							SELECT JSON_OBJECT(
+								'CategoryId', fn_categories.CategoryId,
+								'CategoryName', fn_categories.CategoryName,
+								'Icon', fn_categories.Icon,
+								'Color', fn_categories.Color
+								) 
+							FROM fn_categories AS fn_categories 
+							WHERE fn_categories.CategoryId = fn_transactions.CategoryId 
+							)`),
+					"CategoryDetails",
+				],
+				[
+					Sequelize.literal(`(
+							SELECT JSON_OBJECT(
+								'SubCategoryId', fn_sub_categories.SubCategoryId,
+								'SubCategoriesName', fn_sub_categories.SubCategoriesName,
+								'Icon', fn_sub_categories.Icon
+								) 
+							FROM fn_sub_categories AS fn_sub_categories 
+							WHERE fn_sub_categories.SubCategoryId = fn_transactions.SubCategoryId 
+							)`),
+					"SubCategoryDetails",
+				],
+				[
+					Sequelize.literal(`(
+							SELECT JSON_OBJECT(
+								'AccountId', fn_accounts.AccountId,
+								'AccountName', fn_accounts.AccountName,
+								'ImgPath', fn_accounts.ImgPath,
+								'Icon', fn_accounts.Icon,
+								'Color', fn_accounts.Color
+								) 
+							FROM fn_accounts AS fn_accounts 
+							WHERE fn_accounts.AccountId = fn_transactions.AccountId 
+							)`),
+					"AccountDetails",
+				],
+				[
+					Sequelize.literal(`(
+							SELECT JSON_OBJECT(
+								'AccountId', fn_accounts.AccountId,
+								'AccountName', fn_accounts.AccountName,
+								'ImgPath', fn_accounts.ImgPath,
+								'Icon', fn_accounts.Icon,
+								'Color', fn_accounts.Color
+								) 
+							FROM fn_accounts AS fn_accounts 
+							WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId 
+							)`),
+					"TransferDetails",
+				],
+				[
+					Sequelize.literal(`(
+							SELECT JSON_OBJECT(
+								'PartyId', parties.PartyId,
+								'PartyFirstName', parties.PartyFirstName,
+								'PartyLastName', parties.PartyLastName,
+								'PartyAvatar', parties.PartyAvatar,
+								'FullName', CONCAT(parties.PartyFirstName,' ', parties.PartyLastName)
+								) 
+							FROM fn_parties AS parties 
+							WHERE fn_transactions.PartyId = parties.PartyId 
+							)`),
+					"PartyDetails",
+				],
+				[
+					Sequelize.literal(`(
+					SELECT JSON_ARRAYAGG(
+					  JSON_OBJECT(
+						'LabelId', fn_labels.LabelId,
+						'LabelName', fn_labels.LabelName
+					  )
+					) 
+					FROM fn_labels AS fn_labels 
+					WHERE FIND_IN_SET(fn_labels.LabelId, fn_transactions.Tags)
+				  )`),
+					"TagList",
+				],
+			],
+			include: [
+				{
+					model: AccountsModel,
+					attributes: [],
+				},
+				{
+					model: CategoriesModel,
+					attributes: [],
+				},
+				{
+					model: SubCategoriesModel,
+					attributes: [],
+				},
+				{
+					model: PartiesModel,
+					attributes: [],
+				},
+			],
+			where: whereCondition,
+			order: [["Date", "ASC"]],
+			raw: true,
+		});
+
+		let totalIn = 0;
+		let totalOut = 0;
+		let totalInvestment = 0;
+		let totalCredit = 0;
+		let totalDebit = 0;
+
+		let categorySummary = {};
+		let subCategorySummary = {};
+		let subCategoryCategoryMap = {};
+		let partySummary = {};
+		let accountSummary = {};
+		let dateSummary = {};
+
+		fetchList.forEach((tx) => {
+			const amount = parseFloat(tx.Amount) || 0;
+			const action = tx.Action || "Unknown";
+
+			if (tx.Action === "In") {
+				totalIn += amount;
+			} else if (tx.Action === "Out") {
+				totalOut += amount;
+			} else if (tx.Action === "Investment") {
+				totalInvestment += amount;
+			} else if (tx.Action === "Credit") {
+				totalCredit += amount;
+			} else if (tx.Action === "Debit") {
+				totalDebit += amount;
+			}
+
+			// Category Summary
+			const catName = tx.CategoryDetails?.CategoryName;
+			if (catName && !categorySummary[catName]) {
+				categorySummary[catName] = {
+					In: 0,
+					Out: 0,
+				};
+			}
+			if (catName && categorySummary[catName][action] !== undefined) {
+				categorySummary[catName][action] += amount;
+			}
+
+			// Sub-Category Summary
+			const subCatName = tx.SubCategoryDetails?.SubCategoriesName;
+			if (subCatName && !subCategorySummary[subCatName]) {
+				subCategorySummary[subCatName] = {
+					In: 0,
+					Out: 0,
+				};
+			}
+			if (subCatName && subCategorySummary[subCatName][action] !== undefined) {
+				subCategorySummary[subCatName][action] += amount;
+			}
+
+			if (subCatName && catName) {
+				subCategoryCategoryMap[subCatName] = catName;
+			}
+
+			// Party Summary
+			const partyName = tx?.PartyDetails?.FullName;
+			if (partyName && !partySummary[partyName]) {
+				partySummary[partyName] = {
+					Credit: 0,
+					Debit: 0,
+				};
+			}
+			if (partyName && partySummary[partyName][action] !== undefined) {
+				partySummary[partyName][action] += amount;
+			}
+
+			// Account Summary
+			const accountName = tx.AccountDetails?.AccountName;
+			if (accountName && !accountSummary[accountName]) {
+				accountSummary[accountName] = {
+					In: 0,
+					Out: 0,
+					Investment: 0,
+					Credit: 0,
+					Debit: 0,
+				};
+			}
+			if (accountName && accountSummary[accountName][action] !== undefined) {
+				accountSummary[accountName][action] += amount;
+			}
+
+			const txDate = tx.Date;
+			if (!dateSummary[txDate]) {
+				dateSummary[txDate] = 0;
+			}
+			dateSummary[txDate] += amount;
+		});
+
+		const subcategoriesSummary = Object.entries(subCategorySummary).map(([subCategory, {In, Out}]) => {
+			return {subCategory: subCategory, totalIn: In > 0 ? In.toFixed(2) : "", totalOut: Out > 0 ? Out.toFixed(2) : ""};
+		});
+
+		const partyRows = Object.entries(partySummary).map(([name, {Credit, Debit}]) => {
+			return {name: name, totalCredit: Credit > 0 ? Credit.toFixed(2) : "", totalDebit: Debit > 0 ? Debit.toFixed(2) : ""};
+		});
+
+		const accountRows = Object.entries(accountSummary).map(([name, summary]) => {
+			return {
+				name: name,
+				totalIn: summary.In > 0 ? summary.In.toFixed(2) : "",
+				totalOut: summary.Out > 0 ? summary.Out.toFixed(2) : "",
+				totalCredit: summary.Credit > 0 ? summary.Credit.toFixed(2) : "",
+				totalDebit: summary.Debit > 0 ? summary.Debit.toFixed(2) : "",
+				totalInvestment: summary.Investment > 0 ? summary.Investment.toFixed(2) : "",
+			};
+		});
+
+		const data = {
+			monthSummary: [
+				{key: "Income", values: totalIn},
+				{key: "Expense", values: totalOut},
+				{key: "Investment", values: totalInvestment},
+				{key: "Credit", values: totalCredit},
+				{key: "Debit", values: totalDebit},
+			],
+			transactionsList: fetchList.map((r) => ({
+				date: r?.Date,
+				subCategoriesName: r?.SubCategoryDetails?.SubCategoriesName || "",
+				action: r?.Action == "From" ? "Transfer" : r?.Action,
+				accountName: r?.AccountDetails?.AccountName || "",
+				partyFullName: r?.TransferDetails?.AccountName || r?.PartyDetails?.FullName || "",
+				accountAmount: r?.AccountAmount,
+			})),
+			subcategoriesSummary,
+			partySummary: partyRows,
+			accountSummary: accountRows,
+		};
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {
+				status: true,
+				message: "SUCCESS",
+				data: data,
 			},
 		};
 	} catch (error) {

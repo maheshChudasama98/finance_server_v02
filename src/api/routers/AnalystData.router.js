@@ -12,4 +12,5 @@ module.exports = (app) => {
 	app.post("/api/recode/list", TokenMiddleware, Service.RecodeListService);
 	app.post("/api/recode/performance", TokenMiddleware, Service.PerformanceService);
 	app.post("/api/balance/foll", TokenMiddleware, Service.BalanceFollService);
+	app.post("/api/monthly/report", TokenMiddleware, Service.MonthlyReportService);
 };

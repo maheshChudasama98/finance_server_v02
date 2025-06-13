@@ -10,7 +10,6 @@ const bodyParser = require("body-parser");
 const fileUpload = require("express-fileupload");
 const path = require("path");
 const {DefaultDatabaseAction, DefaultEmailSet} = require("./src/api/controllers/Basic.controller");
-const { serverRestarted } = require("./src/helpers/Email.helper");
 
 // --------------------------------------------------------------------------
 

@@ -64,7 +64,7 @@ db.PermissionModel.belongsTo(db.ModulesModel, {foreignKey: "ModuleId"});
 db.RolesModel.hasMany(db.PermissionModel, {foreignKey: "RoleId"}); // One to Many;
 db.PermissionModel.belongsTo(db.RolesModel, {foreignKey: "RoleId"});
 
-// Emailsms Model
+// Email-SMS Model
 db.OrgModel.hasMany(db.EmailsmsModel, {foreignKey: "OrgId"}); // One to Many;
 db.EmailsmsModel.belongsTo(db.OrgModel, {foreignKey: "OrgId"});
 
@@ -90,8 +90,6 @@ db.OrgUsersModel.belongsTo(db.UserModel, {foreignKey: "UserId"});
 // Setting Model
 db.UserModel.hasOne(db.SettingModel, {foreignKey: "UsedBy"}); // One to One;
 db.SettingModel.belongsTo(db.UserModel, {foreignKey: "UsedBy"});
-
-
 
 // ------------ || Finances on project  || ------------ //
 
@@ -164,8 +162,8 @@ db.TransactionsModel.belongsTo(db.AccountsModel, {foreignKey: "AccountId"});
 db.PartiesModel.hasMany(db.TransactionsModel, {foreignKey: "PartyId"}); // One to Many;
 db.TransactionsModel.belongsTo(db.PartiesModel, {foreignKey: "PartyId"});
 
-db.AccountsModel.hasMany(db.TransactionsModel, {foreignKey: "TransferToAccountId"}); // One to Many;
-db.TransactionsModel.belongsTo(db.AccountsModel, {foreignKey: "TransferToAccountId"});
+db.AccountsModel.hasMany(db.TransactionsModel, {foreignKey: "TransferToAccountId", as: "Transfer"}); // One to Many;
+db.TransactionsModel.belongsTo(db.AccountsModel, {foreignKey: "TransferToAccountId", as: "Transfer"});
 
 db.TransactionsModel.hasMany(db.TransactionsModel, {foreignKey: "ParentTransactionId"}); // One to Many;
 db.TransactionsModel.belongsTo(db.TransactionsModel, {foreignKey: "ParentTransactionId"});

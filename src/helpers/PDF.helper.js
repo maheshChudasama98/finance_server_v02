@@ -312,8 +312,8 @@ async function createTransactionStatement() {
 			// }, []);
 
 			const dirPath = path.join(__dirname, "../../public", "statement", element.UUID);
-			let fileName = `${moment().subtract(1, "months").format("MMM_YYYY")}.pdf`;
-			const currentMonth = moment().subtract(1, "months").format("MMM YYYY");
+			let fileName = `${moment().subtract(0, "months").format("MMM_YYYY")}.pdf`;
+			const currentMonth = moment().subtract(0, "months").format("MMM YYYY");
 
 			const pdfPath = path.join(dirPath, fileName);
 
@@ -521,12 +521,12 @@ async function createTransactionStatement() {
 
 			const Title = decodeTitle.replace(/\{__MonthYear__}/g, currentMonth);
 
-			// emailHelper(emailContent, findMail.Subject, Title, element?.Email, [
-			// 	{
-			// 		filename: fileName,
-			// 		path: pdfPath,
-			// 	},
-			// ]);
+			emailHelper(emailContent, findMail.Subject, Title, element?.Email, [
+				{
+					filename: fileName,
+					path: pdfPath,
+				},
+			]);
 		}
 	}
 }
