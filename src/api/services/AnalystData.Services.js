@@ -93,3 +93,38 @@ exports.MonthlyReportService = async (req, res) => {
 		data: DevelopMood ? result?.data : encrypt(result?.data),
 	});
 };
+
+exports.MonthlyDetailedSummaryService = async (req, res) => {
+	const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+	const {httpCode, result} = await Controller.MonthlyDetailedSummaryController(req?.user, body);
+
+	return res.status(httpCode).send({
+		status: result?.status,
+		message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+		data: DevelopMood ? result?.data : encrypt(result?.data),
+	});
+};
+
+// Account-Based Analytics Services
+
+exports.AccountOverviewService = async (req, res) => {
+	const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+	const {httpCode, result} = await Controller.AccountOverviewController(req?.user, body);
+
+	return res.status(httpCode).send({
+		status: result?.status,
+		message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+		data: DevelopMood ? result?.data : encrypt(result?.data),
+	});
+};
+
+exports.AccountDetailsService = async (req, res) => {
+	const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+	const {httpCode, result} = await Controller.AccountDetailsController(req?.user, body);
+
+	return res.status(httpCode).send({
+		status: result?.status,
+		message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+		data: DevelopMood ? result?.data : encrypt(result?.data),
+	});
+};

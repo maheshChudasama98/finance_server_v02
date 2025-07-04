@@ -16,12 +16,11 @@ module.exports = (sequelize, DataTypes) => {
 			Icon: {
 				type: DataTypes.STRING,
 			},
-			Description: {
-				type: DataTypes.STRING(1000),
-				allowNull: false,
-			},
 			ParentNoteId: {
 				type: DataTypes.INTEGER,
+			},
+			Description: {
+				type: DataTypes.STRING(1000),
 			},
 			isActive: {
 				type: DataTypes.BOOLEAN,

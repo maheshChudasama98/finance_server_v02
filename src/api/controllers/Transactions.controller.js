@@ -83,6 +83,22 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount - Amount * 2;
 					dataObject.Action = "Investment";
 					break;
+
+				case "Installment":
+					flagTransfer = true;
+					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
+					transferUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
+					dataObject.AccountAmount = Amount - Amount * 2;
+					dataObject.Action = "Installment";
+					break;
+
+				case "Refund":
+					flagParty = true;
+					accountUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
+					transferUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
+					dataObject.AccountAmount = Amount;
+					dataObject.PartyAmount = Amount - Amount * 2;
+
 				case "Credit":
 					flagParty = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
@@ -90,7 +106,29 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount;
 					dataObject.PartyAmount = Amount - Amount * 2;
 					break;
+
+				case "Buyer":
+					flagParty = true;
+					accountUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
+					transferUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
+					dataObject.AccountAmount = Amount;
+					dataObject.PartyAmount = Amount - Amount * 2;
+					break;
+
+				case "Return":
+					flagParty = true;
+					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
+					transferUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
+					dataObject.AccountAmount = Amount - Amount * 2;
+					dataObject.PartyAmount = Amount;
 				case "Debit":
+					flagParty = true;
+					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
+					transferUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
+					dataObject.AccountAmount = Amount - Amount * 2;
+					dataObject.PartyAmount = Amount;
+					break;
+				case "Payer":
 					flagParty = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
 					transferUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
@@ -138,7 +176,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 				{where: {AccountId: targetTransaction?.AccountId}}
 			);
 
-			if (targetTransaction?.Action == "From" || targetTransaction?.Action == "Investment") {
+			if (targetTransaction?.Action == "From" || targetTransaction?.Action == "Investment" || targetTransaction?.Action == "Installment") {
 				await TransactionsModel.destroy({
 					where: {ParentTransactionId: targetTransaction?.TransactionId},
 				});
@@ -155,7 +193,14 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 				// });
 			}
 
-			if (targetTransaction?.Action == "Credit" || targetTransaction?.Action == "Debit") {
+			if (
+				targetTransaction?.Action == "Payer" ||
+				targetTransaction?.Action == "Buyer" ||
+				targetTransaction?.Action == "Refund" ||
+				targetTransaction?.Action == "Return" ||
+				targetTransaction?.Action == "Debit" ||
+				targetTransaction?.Action == "Debit"
+			) {
 				await PartiesModel.update(
 					{
 						CurrentAmount: Sequelize.literal(`CurrentAmount + ${targetTransaction?.PartyAmount - targetTransaction?.PartyAmount * 2}`),
@@ -219,12 +264,46 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount - Amount * 2;
 					dataObject.Action = "Investment";
 					break;
+				case "Installment":
+					flagTransfer = true;
+					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
+					transferUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
+					dataObject.AccountAmount = Amount - Amount * 2;
+					dataObject.Action = "Installment";
+					break;
+				case "Refund":
+					flagParty = true;
+					accountUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
+					transferUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
+					dataObject.AccountAmount = Amount;
+					dataObject.PartyAmount = Amount - Amount * 2;
+				case "Buyer":
+					flagParty = true;
+					accountUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
+					transferUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
+					dataObject.AccountAmount = Amount;
+					dataObject.PartyAmount = Amount - Amount * 2;
+					break;
 				case "Credit":
 					flagParty = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
 					transferUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
 					dataObject.AccountAmount = Amount;
 					dataObject.PartyAmount = Amount - Amount * 2;
+					break;
+				case "Return":
+					flagParty = true;
+					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
+					transferUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
+					dataObject.AccountAmount = Amount - Amount * 2;
+					dataObject.PartyAmount = Amount;
+					break;
+				case "Payer":
+					flagParty = true;
+					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
+					transferUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
+					dataObject.AccountAmount = Amount - Amount * 2;
+					dataObject.PartyAmount = Amount;
 					break;
 				case "Debit":
 					flagParty = true;

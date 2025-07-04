@@ -13,4 +13,9 @@ module.exports = (app) => {
 	app.post("/api/recode/performance", TokenMiddleware, Service.PerformanceService);
 	app.post("/api/balance/foll", TokenMiddleware, Service.BalanceFollService);
 	app.post("/api/monthly/report", TokenMiddleware, Service.MonthlyReportService);
+	app.post("/api/monthly/detailed-summary", TokenMiddleware, Service.MonthlyDetailedSummaryService);
+	
+	// Account-Based Analytics Routes
+	app.post("/api/account/overview", TokenMiddleware, Service.AccountOverviewService);
+	app.post("/api/account/details", TokenMiddleware, Service.AccountDetailsService);
 };

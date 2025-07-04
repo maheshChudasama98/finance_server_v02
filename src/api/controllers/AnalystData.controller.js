@@ -74,11 +74,11 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 		const results = await TransactionsModel.findOne({
 			attributes: [
 				[fn("YEAR", col("Date")), "duration"],
-				[fn("SUM", literal(`CASE WHEN Action = 'In' THEN Amount ELSE 0 END`)), "totalIn"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Out' THEN Amount ELSE 0 END`)), "totalOut"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END`)), "totalCredit"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END`)), "totalDebit"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END`)), "totalInvestment"],
+				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return', 'Payer') THEN Amount ELSE 0 END")), "totalOut"],
 			],
 			where: whereCondition,
 			group: [fn("YEAR", col("Date"))],
@@ -92,10 +92,10 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 				[fn("MONTH", col("Date")), "month"],
 				[fn("MONTHNAME", col("Date")), "monthName"],
 				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
-				[fn("SUM", literal("CASE WHEN Action = 'Out' THEN Amount ELSE 0 END")), "totalOut"],
 				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
-				[fn("SUM", literal("CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END")), "totalCredit"],
-				[fn("SUM", literal("CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END")), "totalDebit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return', 'Payer') THEN Amount ELSE 0 END")), "totalOut"],
 			],
 			where: whereCondition,
 			group: [fn("YEAR", col("Date")), fn("MONTH", col("Date"))],
@@ -122,11 +122,11 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 		const lastYearData = await TransactionsModel.findOne({
 			attributes: [
 				[fn("YEAR", col("Date")), "duration"],
-				[fn("SUM", literal(`CASE WHEN Action = 'In' THEN Amount ELSE 0 END`)), "totalIn"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Out' THEN Amount ELSE 0 END`)), "totalOut"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END`)), "totalCredit"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END`)), "totalDebit"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END`)), "totalInvestment"],
+				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return', 'Buyer', 'Payer') THEN Amount ELSE 0 END")), "totalOut"],
 			],
 			where: {
 				...whereCondition,
@@ -142,11 +142,11 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 				[fn("MONTHNAME", col("Date")), "duration"],
 
 				// [fn("MONTH", col("Date")), "duration"],
-				[fn("SUM", literal(`CASE WHEN Action = 'In' THEN Amount ELSE 0 END`)), "totalIn"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Out' THEN Amount ELSE 0 END`)), "totalOut"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END`)), "totalCredit"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END`)), "totalDebit"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END`)), "totalInvestment"],
+				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return', 'Buyer', 'Payer') THEN Amount ELSE 0 END")), "totalOut"],
 			],
 			where: {
 				...whereCondition,
@@ -160,11 +160,11 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 		const lastMonthData = await TransactionsModel.findOne({
 			attributes: [
 				[fn("MONTHNAME", col("Date")), "duration"],
-				[fn("SUM", literal(`CASE WHEN Action = 'In' THEN Amount ELSE 0 END`)), "totalIn"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Out' THEN Amount ELSE 0 END`)), "totalOut"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END`)), "totalCredit"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END`)), "totalDebit"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END`)), "totalInvestment"],
+				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return', 'Buyer', 'Payer') THEN Amount ELSE 0 END")), "totalOut"],
 			],
 			where: {
 				...whereCondition,
@@ -1014,25 +1014,75 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 			const childRecords = await TransactionsModel.findAll({
 				attributes: [
 					"TransactionId",
-					"Action",
 					"Date",
 					"Amount",
+					"Action",
 					"AccountId",
 					"CategoryId",
 					"SubCategoryId",
 					"TransferToAccountId",
 					"AccountAmount",
+					"ParentTransactionId",
+					"Description",
+					// [
+					// 	Sequelize.literal(`
+					//   CASE
+					// 	WHEN Action IN ('In', 'Out') THEN CONCAT(fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName  )
+					// 	WHEN Action IN ('Credit', 'Debit') THEN CONCAT(Action, ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+					// 	WHEN Action IN ('From', 'To') THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+					// 	WHEN Action = 'Investment' THEN CONCAT('Invest to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+					// 	ELSE ''
+					//   END
+					// `),
+					// 	"Details",
+					// ],
+					// [
+					// 	Sequelize.literal(`
+					// CASE
+					// 	WHEN Action IN ('In', 'Out') THEN CONCAT(fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+					// 	WHEN Action IN ('Credit', 'Debit') THEN CONCAT(Action, ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+					// 	WHEN Action = 'From' THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+					// 	WHEN Action = 'Investment' THEN CONCAT('Invest into: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+					// 	WHEN Action = 'Refund' THEN CONCAT('Received money back to ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+					// 	WHEN Action = 'Return' THEN CONCAT('Paid returned money to ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+					// 	WHEN Action = 'Payer' THEN CONCAT('Paid for ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName , ' for ' , fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+					// 	WHEN Action = 'Buyer' THEN CONCAT('Paid by ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName , ' for ' , fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+					// 	WHEN Action IN ('From', 'To') THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+					// 	ELSE ''
+					// END`),"Details",
+					// ],
 					[
 						Sequelize.literal(`
-					  CASE 
-						WHEN Action IN ('In', 'Out') THEN CONCAT(fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
-						WHEN Action IN ('Credit', 'Debit') THEN CONCAT(Action, ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
-						WHEN Action IN ('From', 'To') THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
-						WHEN Action = 'Investment' THEN CONCAT('Invest to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
-						ELSE ''
-					  END
-					`),
+        CASE
+          WHEN fn_transactions.Action IN ('In', 'Out') THEN CONCAT(fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+          WHEN fn_transactions.Action IN ('Credit', 'Debit') THEN CONCAT(fn_transactions.Action, ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+          WHEN fn_transactions.Action = 'From' THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+          WHEN fn_transactions.Action = 'Investment' THEN CONCAT('Invest into: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+          WHEN fn_transactions.Action = 'Refund' THEN CONCAT('Received money back from ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+          WHEN fn_transactions.Action = 'Return' THEN CONCAT('Returned money to ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+          WHEN fn_transactions.Action = 'Payer' THEN CONCAT('Paid for ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName, ' for ', fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+          WHEN fn_transactions.Action = 'Buyer' THEN CONCAT('Paid by ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName, ' for ', fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+        WHEN fn_transactions.Action = 'Installment' THEN CONCAT('EMI to : ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+
+		  WHEN fn_transactions.Action = 'To' THEN CONCAT(
+            'Transfer (', 
+              (SELECT pt.Action FROM fn_transactions AS pt WHERE pt.TransactionId = fn_transactions.ParentTransactionId LIMIT 1), 
+              ') to: ',
+              (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId)
+          )
+          ELSE ''
+        END
+      `),
 						"Details",
+					],
+					[
+						Sequelize.literal(`
+					  	CASE
+					  		WHEN Action = 'To' THEN ( SELECT pt.Action  FROM fn_transactions AS pt  WHERE pt.TransactionId = fn_transactions.ParentTransactionId LIMIT 1)
+							ELSE Action
+					  	END
+					`),
+						"Action",
 					],
 					[Sequelize.literal(subQuery), "Balance"],
 					[Sequelize.col("fn_category.CategoryName"), "CategoryName"],
@@ -1045,6 +1095,11 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 				],
 				where: childWhereCondition,
 				include: [
+					// {
+					// 	model: TransactionsModel,
+					// 	as: "ParentNote",
+					// 	attributes: [["Action", "ParentAction"]],
+					// },
 					{
 						model: AccountsModel,
 						attributes: [],
@@ -1390,6 +1445,588 @@ exports.MonthlyReportController = async (payloadUser, payloadBody) => {
 				status: true,
 				message: "SUCCESS",
 				data: data,
+			},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
+exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
+	try {
+		let {OrgId, BranchId, UserId} = payloadUser;
+		const {Month, Year, AccountId, PartyId, CategoryId, SubCategoryId} = payloadBody;
+
+		if (!Month || !Year) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {
+					status: false,
+					message: "Month and Year are required",
+				},
+			};
+		}
+
+		const whereCondition = {
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+		};
+
+		// Add filters
+		if (AccountId) {
+			whereCondition.AccountId = AccountId;
+		}
+		if (PartyId) {
+			whereCondition.PartyId = PartyId;
+		}
+		if (CategoryId) {
+			whereCondition.CategoryId = CategoryId;
+		}
+		if (SubCategoryId) {
+			whereCondition.SubCategoryId = SubCategoryId;
+		}
+
+		// Set date range for the month
+		const startDate = new Date(Year, Month - 1, 1);
+		const endDate = new Date(Year, Month, 0, 23, 59, 59, 999);
+		whereCondition.Date = {[Op.between]: [startDate, endDate]};
+
+		// Get all transactions for the month
+		const transactions = await TransactionsModel.findAll({
+			attributes: [
+				"TransactionId",
+				"Action",
+				"Date",
+				"Amount",
+				"CategoryId",
+				"SubCategoryId",
+				"AccountId",
+				"PartyId",
+				"TransferToAccountId",
+				"AccountAmount",
+				"Description",
+				[
+					Sequelize.literal(`
+						CASE 
+							WHEN Action IN ('In', 'Out') THEN CONCAT(fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+							WHEN Action IN ('Credit', 'Debit') THEN CONCAT(Action, ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+							WHEN Action = 'From' THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+							WHEN Action = 'Investment' THEN CONCAT('Invest into: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+							WHEN Action = 'Refund' THEN CONCAT('Received money back from ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+							WHEN Action = 'Return' THEN CONCAT('Returned money to ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+							WHEN Action = 'Payer' THEN CONCAT('Paid for ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName, ' for ', fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+							WHEN Action = 'Buyer' THEN CONCAT('Paid by ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName, ' for ', fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+							WHEN Action = 'Installment' THEN CONCAT('EMI to : ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+							WHEN Action = 'To' THEN CONCAT(
+								'Transfer (', 
+								(SELECT pt.Action FROM fn_transactions AS pt WHERE pt.TransactionId = fn_transactions.ParentTransactionId LIMIT 1), 
+								') to: ',
+								(SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId)
+							)
+							ELSE ''
+						END
+					`),
+					"Details",
+				],
+			],
+			where: whereCondition,
+			include: [
+				{
+					model: AccountsModel,
+					attributes: ["AccountName", "Color"],
+				},
+				{
+					model: CategoriesModel,
+					attributes: ["CategoryName", "Icon", "Color"],
+				},
+				{
+					model: SubCategoriesModel,
+					attributes: ["SubCategoriesName", "Icon"],
+				},
+				{
+					model: PartiesModel,
+					attributes: ["PartyFirstName", "PartyLastName"],
+				},
+			],
+			order: [["Date", "ASC"]],
+			raw: true,
+		});
+
+		// Calculate summaries
+		let totalIn = 0;
+		let totalOut = 0;
+		let totalInvestment = 0;
+		let totalCredit = 0;
+		let totalDebit = 0;
+		let realIncome = 0;
+		let realExpense = 0;
+
+		// Category summaries
+		let categorySummary = {};
+		let subCategorySummary = {};
+		let partySummary = {};
+		let accountSummary = {};
+		let actionSummary = {};
+
+		// Daily summaries
+		let dailySummary = {};
+
+		transactions.forEach((tx) => {
+			const amount = parseFloat(tx.Amount) || 0;
+			const action = tx.Action || "Unknown";
+
+			// Basic calculations
+			if (tx.Action === "In") {
+				totalIn += amount;
+			} else if (tx.Action === "Out") {
+				totalOut += amount;
+			} else if (tx.Action === "Investment") {
+				totalInvestment += amount;
+			} else if (tx.Action === "Credit") {
+				totalCredit += amount;
+			} else if (tx.Action === "Debit") {
+				totalDebit += amount;
+			}
+
+			// Real financial impact calculations
+			if (tx.Action === "In" || tx.Action === "Buyer" || tx.Action === "Refund") {
+				realIncome += amount;
+			}
+			if (tx.Action === "Out" || tx.Action === "Installment" || tx.Action === "Return" || tx.Action === "Payer") {
+				realExpense += amount;
+			}
+
+			// Category Summary
+			const catName = tx.CategoryName;
+			if (catName) {
+				if (!categorySummary[catName]) {
+					categorySummary[catName] = {
+						In: 0,
+						Out: 0,
+						Investment: 0,
+						Credit: 0,
+						Debit: 0,
+						Buyer: 0,
+						Payer: 0,
+						Refund: 0,
+						Return: 0,
+						Installment: 0,
+						From: 0,
+						To: 0,
+					};
+				}
+				if (categorySummary[catName][action] !== undefined) {
+					categorySummary[catName][action] += amount;
+				}
+			}
+
+			// Sub-Category Summary
+			const subCatName = tx.SubCategoriesName;
+			if (subCatName) {
+				if (!subCategorySummary[subCatName]) {
+					subCategorySummary[subCatName] = {
+						In: 0,
+						Out: 0,
+						Investment: 0,
+						Credit: 0,
+						Debit: 0,
+						Buyer: 0,
+						Payer: 0,
+						Refund: 0,
+						Return: 0,
+						Installment: 0,
+						From: 0,
+						To: 0,
+					};
+				}
+				if (subCategorySummary[subCatName][action] !== undefined) {
+					subCategorySummary[subCatName][action] += amount;
+				}
+			}
+
+			// Party Summary
+			const partyName = tx.PartyFirstName && tx.PartyLastName ? `${tx.PartyFirstName} ${tx.PartyLastName}` : null;
+			if (partyName) {
+				if (!partySummary[partyName]) {
+					partySummary[partyName] = {
+						Credit: 0,
+						Debit: 0,
+						Buyer: 0,
+						Payer: 0,
+						Refund: 0,
+						Return: 0,
+					};
+				}
+				if (partySummary[partyName][action] !== undefined) {
+					partySummary[partyName][action] += amount;
+				}
+			}
+
+			// Account Summary
+			const accountName = tx.AccountName;
+			if (accountName) {
+				if (!accountSummary[accountName]) {
+					accountSummary[accountName] = {
+						In: 0,
+						Out: 0,
+						Investment: 0,
+						Credit: 0,
+						Debit: 0,
+						Buyer: 0,
+						Payer: 0,
+						Refund: 0,
+						Return: 0,
+						Installment: 0,
+						From: 0,
+						To: 0,
+					};
+				}
+				if (accountSummary[accountName][action] !== undefined) {
+					accountSummary[accountName][action] += amount;
+				}
+			}
+
+			// Action Summary
+			if (!actionSummary[action]) {
+				actionSummary[action] = 0;
+			}
+			actionSummary[action] += amount;
+
+			// Daily Summary
+			const dateKey = new Date(tx.Date).toISOString().split("T")[0];
+			if (!dailySummary[dateKey]) {
+				dailySummary[dateKey] = {
+					date: dateKey,
+					totalIn: 0,
+					totalOut: 0,
+					totalInvestment: 0,
+					totalCredit: 0,
+					totalDebit: 0,
+					realIncome: 0,
+					realExpense: 0,
+					transactions: [],
+				};
+			}
+			dailySummary[dateKey].transactions.push(tx);
+
+			if (tx.Action === "In" || tx.Action === "Buyer" || tx.Action === "Refund") {
+				dailySummary[dateKey].realIncome += amount;
+			}
+			if (tx.Action === "Out" || tx.Action === "Installment" || tx.Action === "Return" || tx.Action === "Payer") {
+				dailySummary[dateKey].realExpense += amount;
+			}
+		});
+
+		// Convert summaries to arrays
+		const categorySummaryArray = Object.entries(categorySummary).map(([name, data]) => ({
+			name,
+			...data,
+		}));
+
+		const subCategorySummaryArray = Object.entries(subCategorySummary).map(([name, data]) => ({
+			name,
+			...data,
+		}));
+
+		const partySummaryArray = Object.entries(partySummary).map(([name, data]) => ({
+			name,
+			...data,
+		}));
+
+		const accountSummaryArray = Object.entries(accountSummary).map(([name, data]) => ({
+			name,
+			...data,
+		}));
+
+		const actionSummaryArray = Object.entries(actionSummary).map(([action, amount]) => ({
+			action,
+			amount,
+		}));
+
+		const dailySummaryArray = Object.values(dailySummary).sort((a, b) => a.date.localeCompare(b.date));
+
+		// Calculate net amounts
+		const netIncome = realIncome - realExpense;
+		const netCredit = totalCredit - totalDebit;
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {
+				status: true,
+				message: "SUCCESS",
+				data: {
+					month: Month,
+					year: Year,
+					monthName: new Date(Year, Month - 1).toLocaleDateString("en-US", {month: "long"}),
+
+					// Overall Summary
+					summary: {
+						totalIn,
+						totalOut,
+						totalInvestment,
+						totalCredit,
+						totalDebit,
+						realIncome,
+						realExpense,
+						netIncome,
+						netCredit,
+					},
+
+					// Detailed Breakdowns
+					categorySummary: categorySummaryArray,
+					subCategorySummary: subCategorySummaryArray,
+					partySummary: partySummaryArray,
+					accountSummary: accountSummaryArray,
+					actionSummary: actionSummaryArray,
+					dailySummary: dailySummaryArray,
+
+					// All Transactions
+					transactions: transactions.map((tx) => ({
+						transactionId: tx.TransactionId,
+						date: tx.Date,
+						action: tx.Action,
+						amount: tx.Amount,
+						details: tx.Details,
+						categoryName: tx.CategoryName,
+						subCategoryName: tx.SubCategoriesName,
+						accountName: tx.AccountName,
+						partyName: tx.PartyFirstName && tx.PartyLastName ? `${tx.PartyFirstName} ${tx.PartyLastName}` : null,
+						description: tx.Description,
+					})),
+
+					// Statistics
+					statistics: {
+						totalTransactions: transactions.length,
+						uniqueCategories: Object.keys(categorySummary).length,
+						uniqueSubCategories: Object.keys(subCategorySummary).length,
+						uniqueParties: Object.keys(partySummary).length,
+						uniqueAccounts: Object.keys(accountSummary).length,
+						daysWithTransactions: Object.keys(dailySummary).length,
+					},
+				},
+			},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
+// Account-Based Analytics Controllers
+
+exports.AccountOverviewController = async (payloadUser, payloadBody) => {
+	try {
+		let {OrgId, BranchId, UserId} = payloadUser;
+		let {Duration = "This_Year", AccountId} = payloadBody;
+
+		const {StartDate, EndDate} = await durationFindFun(Duration);
+
+		const whereCondition = {
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+			Date: {[Op.between]: [StartDate, EndDate]},
+			...(AccountId && {AccountId}),
+		};
+
+		// Get account summary
+		const accountSummary = await TransactionsModel.findAll({
+			attributes: [
+				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIncome"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return') THEN Amount ELSE 0 END")), "totalExpense"],
+				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
+				[fn("COUNT", literal("CASE WHEN Action = 'In' THEN 1 END")), "incomeCount"],
+				[fn("COUNT", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return') THEN 1 END")), "expenseCount"],
+				[fn("COUNT", literal("CASE WHEN Action = 'Investment' THEN 1 END")), "investmentCount"],
+			],
+			include: [
+				{
+					model: AccountsModel,
+					attributes: ["AccountId", "AccountName", "TypeId", "CurrentAmount", "StartAmount", "MinAmount", "MaxAmount", "isActive", "isUsing", "createdAt", "Icon", "Color"],
+				},
+			],
+			where: whereCondition,
+			group: ["fn_account.AccountId"],
+			order: [[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "DESC"]],
+			raw: true,
+			nest: true,
+		});
+
+		// Get account performance by month
+		const accountPerformance = await TransactionsModel.findAll({
+			attributes: [
+				[fn("YEAR", col("Date")), "year"],
+				[fn("MONTH", col("Date")), "month"],
+				[fn("MONTHNAME", col("Date")), "monthName"],
+				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "income"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return') THEN Amount ELSE 0 END")), "expense"],
+				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "investment"],
+			],
+			where: whereCondition,
+			// include: [
+			// 	{
+			// 		model: AccountsModel,
+			// 		attributes: ["AccountId"],
+			// 	},
+			// ],
+			group: [fn("YEAR", col("Date")), fn("MONTH", col("Date"))],
+			order: [
+				[fn("YEAR", col("Date")), "ASC"],
+				[fn("MONTH", col("Date")), "ASC"],
+			],
+			raw: true,
+		});
+
+		// // Get recent transactions
+		const recentTransactions = await TransactionsModel.findAll({
+			attributes: ["TransactionId", "Action", "Amount", "Date", "Description"],
+			include: [
+				{
+					model: CategoriesModel,
+					attributes: ["CategoryName", "Icon", "Color"],
+				},
+				{
+					model: AccountsModel,
+					attributes: ["AccountName"],
+				},
+			],
+			where: whereCondition,
+			order: [["Date", "DESC"]],
+			limit: 10,
+			raw: true,
+			nest: true,
+		});
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {
+				status: true,
+				message: "SUCCESS",
+				data: {
+					accountSummary,
+					accountPerformance,
+					recentTransactions,
+				},
+			},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
+exports.AccountDetailsController = async (payloadUser, payloadBody) => {
+	try {
+		let {OrgId, BranchId, UserId} = payloadUser;
+		let {AccountId, Duration = "This_Year"} = payloadBody;
+
+		if (!AccountId) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {status: false, message: "AccountId is required"},
+			};
+		}
+
+		const {StartDate, EndDate} = await durationFindFun(Duration);
+
+		const whereCondition = {
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+			Date: {[Op.between]: [StartDate, EndDate]},
+			AccountId: AccountId,
+		};
+
+		// Get account details
+		const accountDetails = await AccountsModel.findOne({
+			where: {
+				AccountId: AccountId,
+				UsedBy: UserId,
+				OrgId: OrgId,
+				BranchId: BranchId,
+				isDeleted: false,
+			},
+			raw: true,
+		});
+
+		// Get transaction summary
+		const transactionSummary = await TransactionsModel.findOne({
+			attributes: [
+				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIncome"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return') THEN Amount ELSE 0 END")), "totalExpense"],
+				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
+				[fn("COUNT", col("TransactionId")), "totalTransactions"],
+			],
+			where: whereCondition,
+			raw: true,
+		});
+
+		// Get category breakdown
+		const categoryBreakdown = await TransactionsModel.findAll({
+			attributes: [
+				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "income"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return') THEN Amount ELSE 0 END")), "expense"],
+			],
+			include: [
+				{
+					model: CategoriesModel,
+					attributes: ["CategoryId", "CategoryName", "Icon", "Color"],
+				},
+			],
+			where: whereCondition,
+			// group: ["CategoryId"],
+			order: [[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return') THEN Amount ELSE 0 END")), "DESC"]],
+			raw: true,
+			nest: true,
+		});
+
+		// Get daily balance history
+		const balanceHistory = await TransactionsModel.findAll({
+			attributes: [
+				[fn("DATE", col("Date")), "date"],
+				[fn("SUM", literal("CASE WHEN Action IN ('In', 'Credit', 'Buyer') THEN Amount ELSE -Amount END")), "balanceChange"],
+			],
+			where: whereCondition,
+			group: [fn("DATE", col("Date"))],
+			order: [[fn("DATE", col("Date")), "ASC"]],
+			raw: true,
+		});
+
+		// Calculate running balance
+		let runningBalance = parseFloat(accountDetails?.Balance || 0);
+		const balanceWithRunning = balanceHistory.map((item) => {
+			runningBalance += parseFloat(item.balanceChange || 0);
+			return {
+				...item,
+				runningBalance: parseFloat(runningBalance.toFixed(2)),
+			};
+		});
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {
+				status: true,
+				message: "SUCCESS",
+				data: {
+					accountDetails,
+					transactionSummary,
+					categoryBreakdown,
+					balanceHistory: balanceWithRunning,
+				},
 			},
 		};
 	} catch (error) {
