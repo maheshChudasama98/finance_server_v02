@@ -26,6 +26,10 @@ db.LabelsModel = require("./Labels.model")(sequelize, DataTypes);
 db.PartiesModel = require("./Parties.model")(sequelize, DataTypes);
 db.TransactionsModel = require("./Transactions.model")(sequelize, DataTypes);
 
+db.LoansModel = require("./Loans.model")(sequelize, DataTypes);
+db.LoansRepaymentsModel = require("./Loans.Repayments.model")(sequelize, DataTypes);
+
+
 // Kanban project models here
 db.TopicsModel = require("./Topics.model")(sequelize, DataTypes);
 db.TasksModel = require("./Tasks.model")(sequelize, DataTypes);
@@ -173,6 +177,44 @@ db.TransactionsModel.belongsTo(db.CategoriesModel, {foreignKey: "CategoryId"});
 
 db.SubCategoriesModel.hasMany(db.TransactionsModel, {foreignKey: "SubCategoryId"}); // One to Many;
 db.TransactionsModel.belongsTo(db.SubCategoriesModel, {foreignKey: "SubCategoryId"});
+
+db.LoansModel.hasMany(db.TransactionsModel, {foreignKey: "LoanId"}); // One to Many;
+db.TransactionsModel.belongsTo(db.LoansModel, {foreignKey: "LoanId"});
+
+// Loans Model
+db.OrgModel.hasMany(db.LoansModel, {foreignKey: "OrgId"}); // One to Many;
+db.LoansModel.belongsTo(db.OrgModel, {foreignKey: "OrgId"});
+
+db.BranchesModel.hasMany(db.LoansModel, {foreignKey: "BranchId"}); // One to Many;
+db.LoansModel.belongsTo(db.BranchesModel, {foreignKey: "BranchId"});
+
+db.UserModel.hasMany(db.LoansModel, {foreignKey: "UsedBy"}); // One to Many;
+db.LoansModel.belongsTo(db.UserModel, {foreignKey: "UsedBy"});
+
+db.UserModel.hasMany(db.LoansModel, {foreignKey: "UsedBy"}); // One to Many;
+db.LoansModel.belongsTo(db.UserModel, {foreignKey: "UsedBy"});
+
+db.AccountsModel.hasMany(db.LoansModel, {foreignKey: "AccountId"}); // One to Many;
+db.LoansModel.belongsTo(db.AccountsModel, {foreignKey: "AccountId"});
+
+// Loans Repayments Model
+db.OrgModel.hasMany(db.LoansRepaymentsModel, {foreignKey: "OrgId"}); // One to Many;
+db.LoansRepaymentsModel.belongsTo(db.OrgModel, {foreignKey: "OrgId"});
+
+db.BranchesModel.hasMany(db.LoansRepaymentsModel, {foreignKey: "BranchId"}); // One to Many;
+db.LoansRepaymentsModel.belongsTo(db.BranchesModel, {foreignKey: "BranchId"});
+
+db.UserModel.hasMany(db.LoansRepaymentsModel, {foreignKey: "UsedBy"}); // One to Many;
+db.LoansRepaymentsModel.belongsTo(db.UserModel, {foreignKey: "UsedBy"});
+
+db.UserModel.hasMany(db.LoansRepaymentsModel, {foreignKey: "UsedBy"}); // One to Many;
+db.LoansRepaymentsModel.belongsTo(db.UserModel, {foreignKey: "UsedBy"});
+
+db.TransactionsModel.hasMany(db.LoansRepaymentsModel, {foreignKey: "TransactionId"}); // One to Many;
+db.LoansRepaymentsModel.belongsTo(db.TransactionsModel, {foreignKey: "TransactionId"});
+
+db.LoansModel.hasMany(db.LoansRepaymentsModel, {foreignKey: "LoanId"}); // One to Many;
+db.LoansRepaymentsModel.belongsTo(db.LoansModel, {foreignKey: "LoanId"});
 
 // ------------ || Kanban on project  Join || ------------ //
 

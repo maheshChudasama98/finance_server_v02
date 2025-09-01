@@ -4,8 +4,6 @@ const Controller = require("../controllers/Master.controller");
 const { SERVER_ERROR_CODE } = require("../constants/statusCode");
 const { getMessage } = require("../../helpers/messageLangSelector");
 
-
-
 // ------------------------ || Categories Service || ------------------------ //
 
 exports.CategoriesFetchListService = async (req, res) => {
@@ -45,7 +43,7 @@ exports.CategoryActionService = async (req, res) => {
 };
 
 
-// ------------------------ || Sub Categories Service || ------------------------ //
+// ------------------------ || Sub-Categories Service || ------------------------ //
 
 exports.SubCategoriesFetchListService = async (req, res) => {
 
@@ -84,7 +82,7 @@ exports.SubCategoryActionService = async (req, res) => {
 };
 
 
-// ------------------------ || Label Service || ------------------------ //
+// ------------------------ || Labels Service || ------------------------ //
 
 exports.LabelsFetchListService = async (req, res) => {
 
@@ -162,8 +160,7 @@ exports.AccountActionService = async (req, res) => {
 };
 
 
-
-// ------------------------ || Accounts Service || ------------------------ //
+// ------------------------ || Parties Service || ------------------------ //
 
 exports.PartiesFetchListService = async (req, res) => {
 
@@ -193,6 +190,46 @@ exports.PartyActionService = async (req, res) => {
 
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
     const { httpCode, result } = await Controller.PartyActionController(req?.user, body);
+
+    return res.status(httpCode).send({
+        status: result?.status,
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+        data: DevelopMood ? result?.data : encrypt(result?.data)
+    });
+};
+
+
+
+// ------------------------ || Longs Service || ------------------------ //
+
+exports.LongsFetchListService = async (req, res) => {
+
+    const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+    const { httpCode, result } = await Controller.LongsFetchListController(req?.user, body);
+
+    return res.status(httpCode).send({
+        status: result?.status,
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+        data: DevelopMood ? result?.data : encrypt(result?.data)
+    });
+};
+
+exports.LongsModifyService = async (req, res) => {
+
+    const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+    const { httpCode, result } = await Controller.LongsModifyController(req?.user, body);
+
+    return res.status(httpCode).send({
+        status: result?.status,
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+        data: DevelopMood ? result?.data : encrypt(result?.data)
+    });
+};
+
+exports.LongsActionService = async (req, res) => {
+
+    const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+    const { httpCode, result } = await Controller.LongsActionController(req?.user, body);
 
     return res.status(httpCode).send({
         status: result?.status,

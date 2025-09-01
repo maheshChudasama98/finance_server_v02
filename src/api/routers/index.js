@@ -1,6 +1,6 @@
 const {ENGLISH} = require("../constants/messages");
 const cron = require("node-cron");
-const {createTransactionStatement} = require("../../helpers/PDF.helper");
+const {createTransactionStatement, createStatementPDF} = require("../../helpers/PDF.helper");
 
 // ------------ || Include all routers file over here  || ------------ //
 
@@ -35,4 +35,15 @@ module.exports = (app) => {
 			createTransactionStatement();
 		}
 	});
+
+	// app.get("/download", async (req, res) => {
+	// 	try {
+	// 		console.log("datadatadata");
+	// 		const data = await createStatementPDF(1, 1, 2);
+	// 		console.log(data, "datadatadata");
+	// 		return res.status(200).send(ENGLISH.DEFAULT_PATH);
+	// 	} catch (error) {
+	// 		return res.status(500).send({status: false, message: error.message});
+	// 	}
+	//});
 };

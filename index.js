@@ -1,5 +1,5 @@
 // ------------ ||  Express package  || ------------ //
-require("./src/helpers/EnvCheck.helper")(process, process.argv[2]);
+// require("./src/helpers/EnvCheck.helper")(process, process.argv[2]);
 
 require("dotenv").config();
 const express = require("express");

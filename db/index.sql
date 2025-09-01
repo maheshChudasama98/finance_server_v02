@@ -31,3 +31,15 @@ ADD INDEX `roles_ibfk_2_idx` (`ParentNoteId` ASC) VISIBLE;
 
 -------------------------------------- 1-04-2025 ( live in done)
 
+
+ALTER TABLE `fv2`.`fn_transactions` 
+ADD COLUMN `LoanId` INT NULL AFTER `PartyId`,
+ADD INDEX `fn_transactions_ibfk_10_idx` (`LoanId` ASC) VISIBLE;
+;
+ALTER TABLE `fv2`.`fn_transactions` 
+ADD CONSTRAINT `fn_transactions_ibfk_10`
+  FOREIGN KEY (`LoanId`)
+  REFERENCES `fv2`.`fn_loans` (`LoanId`)
+  ON DELETE NO ACTION
+  ON UPDATE NO ACTION;
+

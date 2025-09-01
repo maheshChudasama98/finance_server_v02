@@ -98,6 +98,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					transferUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
 					dataObject.AccountAmount = Amount;
 					dataObject.PartyAmount = Amount - Amount * 2;
+					break;
 
 				case "Credit":
 					flagParty = true;
@@ -121,6 +122,8 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					transferUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
 					dataObject.AccountAmount = Amount - Amount * 2;
 					dataObject.PartyAmount = Amount;
+					break;
+
 				case "Debit":
 					flagParty = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
@@ -128,6 +131,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount - Amount * 2;
 					dataObject.PartyAmount = Amount;
 					break;
+
 				case "Payer":
 					flagParty = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
@@ -135,6 +139,15 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount - Amount * 2;
 					dataObject.PartyAmount = Amount;
 					break;
+
+				default:
+					return {
+						httpCode: BAD_REQUEST_CODE,
+						result: {
+							status: false,
+							message: "Invalid Action type",
+						},
+					};
 			}
 
 			const created = await TransactionsModel.create(dataObject);
@@ -169,6 +182,16 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 				},
 			});
 
+			if (!targetTransaction) {
+				return {
+					httpCode: BAD_REQUEST_CODE,
+					result: {
+						status: false,
+						message: "Transaction not found",
+					},
+				};
+			}
+
 			await AccountsModel.update(
 				{
 					CurrentAmount: Sequelize.literal(`CurrentAmount + ${targetTransaction?.AccountAmount - targetTransaction?.AccountAmount * 2}`),
@@ -199,7 +222,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 				targetTransaction?.Action == "Refund" ||
 				targetTransaction?.Action == "Return" ||
 				targetTransaction?.Action == "Debit" ||
-				targetTransaction?.Action == "Debit"
+				targetTransaction?.Action == "Credit"
 			) {
 				await PartiesModel.update(
 					{
@@ -264,6 +287,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount - Amount * 2;
 					dataObject.Action = "Investment";
 					break;
+
 				case "Installment":
 					flagTransfer = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
@@ -271,12 +295,15 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount - Amount * 2;
 					dataObject.Action = "Installment";
 					break;
+
 				case "Refund":
 					flagParty = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
 					transferUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
 					dataObject.AccountAmount = Amount;
 					dataObject.PartyAmount = Amount - Amount * 2;
+					break;
+
 				case "Buyer":
 					flagParty = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
@@ -284,6 +311,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount;
 					dataObject.PartyAmount = Amount - Amount * 2;
 					break;
+
 				case "Credit":
 					flagParty = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount + ${Amount}`);
@@ -291,6 +319,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount;
 					dataObject.PartyAmount = Amount - Amount * 2;
 					break;
+
 				case "Return":
 					flagParty = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
@@ -298,6 +327,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount - Amount * 2;
 					dataObject.PartyAmount = Amount;
 					break;
+
 				case "Payer":
 					flagParty = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
@@ -305,6 +335,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount - Amount * 2;
 					dataObject.PartyAmount = Amount;
 					break;
+
 				case "Debit":
 					flagParty = true;
 					accountUpdateString = Sequelize.literal(`CurrentAmount - ${Amount}`);
@@ -312,6 +343,15 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					dataObject.AccountAmount = Amount - Amount * 2;
 					dataObject.PartyAmount = Amount;
 					break;
+
+				default:
+					return {
+						httpCode: BAD_REQUEST_CODE,
+						result: {
+							status: false,
+							message: "Invalid Action type",
+						},
+					};
 			}
 
 			await TransactionsModel.update(dataObject, {
@@ -809,7 +849,7 @@ exports.TransactionRemoveController = async (payloadUser, payloadQuery) => {
 			{where: {AccountId: targetTransaction?.AccountId}}
 		);
 
-		if (targetTransaction?.Action == "From" || targetTransaction?.Action == "Investment") {
+		if (targetTransaction?.Action == "From" || targetTransaction?.Action == "Investment" || targetTransaction?.Action == "Installment") {
 			await TransactionsModel.destroy({
 				where: {ParentTransactionId: targetTransaction?.TransactionId},
 			});
@@ -826,7 +866,14 @@ exports.TransactionRemoveController = async (payloadUser, payloadQuery) => {
 			// });
 		}
 
-		if (targetTransaction?.Action == "Credit" || targetTransaction?.Action == "Debit") {
+		if (
+			targetTransaction?.Action == "Payer" ||
+			targetTransaction?.Action == "Buyer" ||
+			targetTransaction?.Action == "Debit" ||
+			targetTransaction?.Action == "Credit" ||
+			targetTransaction?.Action == "Return" ||
+			targetTransaction?.Action == "Refund"
+		) {
 			await PartiesModel.update(
 				{
 					CurrentAmount: Sequelize.literal(`CurrentAmount + ${targetTransaction?.PartyAmount - targetTransaction?.PartyAmount * 2}`),

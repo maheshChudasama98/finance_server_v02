@@ -66,19 +66,25 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 			Date: {[Op.between]: [StartDate, EndDate]},
 		};
 
-		const lastYear = await durationFindFun("Last_Year", StartDate);
-		const lastMonth = await durationFindFun("Last_Month");
-		const thisMonth = await durationFindFun("This_Month");
+		const lastYear = await durationFindFun("Last_Year", StartDate); // Date base last year date final
+		const thisMonth = await durationFindFun("This_Month"); // This month date find
+		const lastMonth = await durationFindFun("Last_Month"); // Last month date find
+
+		//  "IN"
+		// "Out"
 
 		// Select Year total all Action
 		const results = await TransactionsModel.findOne({
 			attributes: [
 				[fn("YEAR", col("Date")), "duration"],
 				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment') THEN Amount ELSE 0 END")), "totalOut"],
 				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
 				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
 				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
-				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return', 'Payer') THEN Amount ELSE 0 END")), "totalOut"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Return') THEN Amount ELSE 0 END")), "totalReturn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Refund') THEN Amount ELSE 0 END")), "totalRefund"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Refund', 'Payer') THEN Amount ELSE 0 END")), "totalExpense"],
 			],
 			where: whereCondition,
 			group: [fn("YEAR", col("Date"))],
@@ -92,10 +98,13 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 				[fn("MONTH", col("Date")), "month"],
 				[fn("MONTHNAME", col("Date")), "monthName"],
 				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment') THEN Amount ELSE 0 END")), "totalOut"],
 				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
 				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
 				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
-				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return', 'Payer') THEN Amount ELSE 0 END")), "totalOut"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Return') THEN Amount ELSE 0 END")), "totalReturn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Refund') THEN Amount ELSE 0 END")), "totalRefund"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Refund', 'Payer') THEN Amount ELSE 0 END")), "totalExpense"],
 			],
 			where: whereCondition,
 			group: [fn("YEAR", col("Date")), fn("MONTH", col("Date"))],
@@ -116,6 +125,9 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 				totalInvestment: found ? found.totalInvestment : "0.00",
 				totalCredit: found ? found.totalCredit : "0.00",
 				totalDebit: found ? found.totalDebit : "0.00",
+				totalReturn: found ? found.totalReturn : "0.00",
+				totalRefund: found ? found.totalRefund : "0.00",
+				totalExpense: found ? found.totalExpense : "0.00",
 			};
 		});
 
@@ -123,10 +135,13 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 			attributes: [
 				[fn("YEAR", col("Date")), "duration"],
 				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment') THEN Amount ELSE 0 END")), "totalOut"],
 				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
 				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
 				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
-				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return', 'Buyer', 'Payer') THEN Amount ELSE 0 END")), "totalOut"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Return') THEN Amount ELSE 0 END")), "totalReturn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Refund') THEN Amount ELSE 0 END")), "totalRefund"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Refund', 'Payer') THEN Amount ELSE 0 END")), "totalExpense"],
 			],
 			where: {
 				...whereCondition,
@@ -140,13 +155,14 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 		const thisMonthData = await TransactionsModel.findOne({
 			attributes: [
 				[fn("MONTHNAME", col("Date")), "duration"],
-
-				// [fn("MONTH", col("Date")), "duration"],
 				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment') THEN Amount ELSE 0 END")), "totalOut"],
 				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
 				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
 				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
-				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return', 'Buyer', 'Payer') THEN Amount ELSE 0 END")), "totalOut"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Return') THEN Amount ELSE 0 END")), "totalReturn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Refund') THEN Amount ELSE 0 END")), "totalRefund"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Refund', 'Payer') THEN Amount ELSE 0 END")), "totalExpense"],
 			],
 			where: {
 				...whereCondition,
@@ -161,10 +177,13 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 			attributes: [
 				[fn("MONTHNAME", col("Date")), "duration"],
 				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment') THEN Amount ELSE 0 END")), "totalOut"],
 				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
 				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
 				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
-				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return', 'Buyer', 'Payer') THEN Amount ELSE 0 END")), "totalOut"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Return') THEN Amount ELSE 0 END")), "totalReturn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Refund') THEN Amount ELSE 0 END")), "totalRefund"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Refund', 'Payer') THEN Amount ELSE 0 END")), "totalExpense"],
 			],
 			where: {
 				...whereCondition,
@@ -253,11 +272,14 @@ exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 		const results = await TransactionsModel.findAll({
 			attributes: [
 				[timeDurationFn, "duration"],
-				[fn("SUM", literal(`CASE WHEN Action = 'In' THEN Amount ELSE 0 END`)), "totalIn"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Out' THEN Amount ELSE 0 END`)), "totalOut"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END`)), "totalInvestment"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END`)), "totalCredit"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END`)), "totalDebit"],
+				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment') THEN Amount ELSE 0 END")), "totalOut"],
+				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Return') THEN Amount ELSE 0 END")), "totalReturn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Refund') THEN Amount ELSE 0 END")), "totalRefund"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Refund', 'Payer') THEN Amount ELSE 0 END")), "totalExpense"],
 			],
 			where: whereCondition,
 			group: [fn(Duration, col("Date"))],
@@ -270,6 +292,9 @@ exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 		let cumulativeTotalInvestment = 0;
 		let cumulativeTotalCredit = 0;
 		let cumulativeTotalDebit = 0;
+		let cumulativeTotalRefund = 0;
+		let cumulativeTotalReturn = 0;
+		let cumulativeTotalExpense = 0;
 
 		const updatedResults = results.map((row, index) => {
 			cumulativeTotalIn += parseFloat(row.totalIn);
@@ -277,6 +302,9 @@ exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 			cumulativeTotalInvestment += parseFloat(row.totalInvestment);
 			cumulativeTotalCredit += parseFloat(row.totalCredit);
 			cumulativeTotalDebit += parseFloat(row.totalDebit);
+			cumulativeTotalReturn += parseFloat(row.totalReturn);
+			cumulativeTotalRefund += parseFloat(row.totalRefund);
+			cumulativeTotalExpense += parseFloat(row.totalExpense);
 
 			return {
 				duration: row.duration,
@@ -285,6 +313,9 @@ exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 				totalInvestment: cumulativeTotalInvestment.toFixed(2),
 				totalCredit: cumulativeTotalCredit.toFixed(2),
 				totalDebit: cumulativeTotalDebit.toFixed(2),
+				totalReturn: cumulativeTotalReturn.toFixed(2),
+				totalRefund: cumulativeTotalRefund.toFixed(2),
+				totalExpense: cumulativeTotalExpense.toFixed(2),
 			};
 		});
 
@@ -357,7 +388,8 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 				[Sequelize.col("fn_category.Color"), "Color"],
 				[Sequelize.col("fn_category.CategoryName"), "CategoryName"],
 				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
-				[fn("SUM", literal("CASE WHEN Action = 'Out' THEN Amount ELSE 0 END")), "totalOut"],
+				// [fn("SUM", literal("CASE WHEN Action = 'Out' THEN Amount ELSE 0 END")), "totalOut"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment') THEN Amount ELSE 0 END")), "totalOut"],
 			],
 			include: [
 				{
@@ -467,7 +499,8 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 				[Sequelize.col("fn_sub_category.SubCategoriesName"), "SubCategoryName"],
 				[Sequelize.col("fn_sub_category.Icon"), "Icon"],
 				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
-				[fn("SUM", literal("CASE WHEN Action = 'Out' THEN Amount ELSE 0 END")), "totalOut"],
+				// [fn("SUM", literal("CASE WHEN Action = 'Out' THEN Amount ELSE 0 END")), "totalOut"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment') THEN Amount ELSE 0 END")), "totalOut"],
 			],
 			include: [
 				{
