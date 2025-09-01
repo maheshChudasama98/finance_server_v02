@@ -209,7 +209,7 @@ const serverRestarted = async () => {
 		.replace(/\{__ProjectName__}/g, process.env.PROJECT_NAME)
 		.replace(/\{__ServerPort__}/g, process.env.PORT)
 		.replace(/\{__DatabaseName__}/g, process.env.DATABASE_COLLECTION)
-		.replace(/\{__DefaultUrl__}/g, process.env.PROJECT_API_URL + process.env.PORT);
+		.replace(/\{__DefaultUrl__}/g, process.env.PROJECT_API_URL);
 
 	await emailHelper(emailContent, find?.Subject, find?.Title, process.env.MAIN_USER_EMAIL);
 };
