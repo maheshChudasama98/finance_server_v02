@@ -32,7 +32,7 @@ exports.UserBasedDefaultCategory = async (UserId, OrgId, BranchId) => {
 
 			for (let i = 0; i < element?.Child.length; i++) {
 				const sub = element?.Child[i];
-			
+
 				await SubCategoriesModel?.create({
 					...sub,
 					CategoryId: created?.CategoryId,

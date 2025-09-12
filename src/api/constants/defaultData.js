@@ -1,4 +1,4 @@
-const { ProjectName } = require("./constants");
+const {ProjectName} = require("./constants");
 
 require("dotenv").config();
 
@@ -568,5 +568,23 @@ module.exports.emailList = [
 			<p style="font-family: Arial, sans-serif; line-height: 1.6; margin-top: 30px;">Thank you,<br>The Team</p>
 		`,
 		Slug: "monthly-transaction-summary",
+	},
+	{
+		Type: "email",
+		Title: "Your OTP Code",
+		Subject: "OTP Verification",
+		Content: `
+			<p style="font-family: Arial, sans-serif; line-height: 1.6;">Dear <strong>{__UserName__}</strong>,</p>
+			<p style="font-family: Arial, sans-serif; line-height: 1.6;">We received a request to verify your account. Please use the following One-Time Password (OTP) to complete the process.</p>
+			
+			<div style="margin: 20px 0; padding: 15px; background-color: #f9f9f9; border: 1px dashed #ccc; text-align: center; font-family: Arial, sans-serif;">
+  				<p style="font-size: 18px; margin: 0;">Your OTP is:</p>
+  				<p style="font-size: 28px; font-weight: bold; margin: 10px 0; color: #2b6cb0;">{__OTP__}</p>
+  				<p style="font-size: 14px; margin: 0; color: #555;">This OTP is valid for <strong>10 minutes</strong>.</p>
+			</div>
+
+			<p style="font-family: Arial, sans-serif; line-height: 1.6; margin-top: 20px;"> If you did not request this, please ignore this email or contact support.</p>
+		`,
+		Slug: "otp-verification",
 	},
 ];

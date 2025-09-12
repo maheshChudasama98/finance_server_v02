@@ -139,10 +139,16 @@ exports.CategoriesFetchListController = async (payloadUser, payloadBody) => {
 		}
 
 		const whereCondition = {
-			UsedBy: UserId,
 			isDeleted: false,
 			OrgId: OrgId,
 			BranchId: BranchId,
+			[Op.or]: {
+				isPrimitive: false,
+				[Op.and]: {
+					isPrimitive: true,
+					UsedBy: UserId,
+				},
+			},
 		};
 
 		if (FilterBy?.CategoryName) {
@@ -188,23 +194,16 @@ exports.CategoriesFetchListController = async (payloadUser, payloadBody) => {
 				"createdAt",
 				"updatedAt",
 				[
-					// Sequelize.literal(`(
-					//               SELECT COUNT(*)
-					//               FROM fn_sub_categories
-					//               WHERE fn_categories.CategoryId = fn_sub_categories.CategoryId
-					//               AND fn_categories.isDeleted = false AND fn_sub_categories.isDeleted = false
-					//           )`),
-					// "TotalSubCategory",
 					Sequelize.literal(`(
-              SELECT JSON_OBJECT(
-                  'TotalInCome', SUM(CASE WHEN fn_transactions.Action = 'In' THEN fn_transactions.Amount ELSE 0 END),
-                  'TotalExpense', SUM(CASE WHEN fn_transactions.Action = 'Out' THEN fn_transactions.Amount ELSE 0 END)
-              )
-              FROM fn_transactions
-              WHERE fn_transactions.CategoryId = fn_categories.CategoryId
-              AND fn_categories.isDeleted = false
-              AND fn_transactions.isDeleted = false
-          )`),
+              		SELECT JSON_OBJECT(
+                  		'TotalInCome', SUM(CASE WHEN fn_transactions.Action = 'In' THEN fn_transactions.Amount ELSE 0 END),
+                  		'TotalExpense', SUM(CASE WHEN fn_transactions.Action = 'Out' THEN fn_transactions.Amount ELSE 0 END)
+						)
+					FROM fn_transactions 
+					WHERE fn_transactions.CategoryId = fn_categories.CategoryId
+					AND fn_categories.isDeleted = false
+					AND fn_transactions.isDeleted = false 
+					AND fn_transactions.UsedBy = ${UserId})`),
 					"TransactionSummary",
 				],
 				[
@@ -234,6 +233,7 @@ exports.CategoriesFetchListController = async (payloadUser, payloadBody) => {
                         FROM fn_sub_categories  
                         WHERE fn_categories.CategoryId = fn_sub_categories.CategoryId 
                         AND fn_sub_categories.isDeleted = false
+					 	AND (fn_sub_categories.isPrimitive = false OR ( fn_sub_categories.isPrimitive = true AND fn_sub_categories.UsedBy = ${UserId}))
                     )`),
 					"SubCategories",
 				],
@@ -328,6 +328,7 @@ exports.CategoryModifyController = async (payloadUser, payloadBody) => {
 					UsedBy: UserId,
 					OrgId: OrgId,
 					BranchId: BranchId,
+					isPrimitive: true,
 					isDeleted: false,
 				});
 

@@ -43,3 +43,13 @@ ADD CONSTRAINT `fn_transactions_ibfk_10`
   ON DELETE NO ACTION
   ON UPDATE NO ACTION;
 
+
+-------------------------------------- 11-009-2025 
+
+ALTER TABLE `fv3`.`fn_categories` 
+ADD COLUMN `isPrimitive` TINYINT(1) NOT NULL DEFAULT 0 AFTER `Description`;
+
+
+ALTER TABLE `fv3`.`fn_sub_categories` 
+ADD COLUMN `isPrimitive` TINYINT(1) NOT NULL DEFAULT 0 AFTER `CategoryId`;
+

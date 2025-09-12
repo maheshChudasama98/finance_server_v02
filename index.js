@@ -31,9 +31,9 @@ app.use("/public", express.static(path.join(__dirname, "public")));
 require("./src/api/models/index"); //  All Models and Database connection
 require("./src/api/routers/index")(app); // All Router index
 
+DefaultEmailSet();
 setTimeout(async () => {
 	console.log("Executing task...");
-	// await DefaultEmailSet();
 	await serverRestarted();
 	// await  DefaultDatabaseAction();
 }, 2 * 60 * 1000);

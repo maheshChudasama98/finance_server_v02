@@ -16,6 +16,18 @@ exports.LoginService = async (req, res) => {
     });
 };
 
+exports.SignupService = async (req, res) => {
+
+    const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+    const { httpCode, result } = await AuthController.SignupController(body);
+
+    return res.status(httpCode).send({
+        status: result?.status,
+        message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage("EN", result?.message),
+        data: DevelopMood ? result?.data : encrypt(result?.data)
+    });
+};
+
 exports.ForgotPasswordService = async (req, res) => {
 
     const body = DevelopMood ? req.body : await decrypt(req.body?.key);
