@@ -749,11 +749,24 @@ exports.TransactionFetchDataController = async (payloadUser, payloadBody) => {
                         FROM fn_sub_categories  
                         WHERE fn_categories.CategoryId = fn_sub_categories.CategoryId 
                         AND fn_sub_categories.isDeleted = false
+						AND (fn_sub_categories.isPrimitive = false OR ( fn_sub_categories.isPrimitive = true AND fn_sub_categories.UsedBy = ${UserId}))
                     )`),
 					"SubCategories",
 				],
 			],
-			where: whereCondition,
+			where: {
+				// ...whereCondition,
+				OrgId: OrgId,
+				BranchId: BranchId,
+				isDeleted: false,
+				[Op.or]: {
+					isPrimitive: false,
+					[Op.and]: {
+						isPrimitive: true,
+						UsedBy: UserId,
+					},
+				},
+			},
 			order: [["CategoryName", "ASC"]],
 			raw: true,
 		});
@@ -794,7 +807,18 @@ exports.TransactionFetchDataController = async (payloadUser, payloadBody) => {
 
 		const subCategoriesList = await SubCategoriesModel.findAll({
 			attributes: ["SubCategoryId", "SubCategoriesName", "Icon", "Description", "CategoryId", "isUsing", "isActive", "createdAt", "updatedAt"],
-			where: whereCondition,
+			where: {
+				OrgId: OrgId,
+				BranchId: BranchId,
+				isDeleted: false,
+				[Op.or]: {
+					isPrimitive: false,
+					[Op.and]: {
+						isPrimitive: true,
+						UsedBy: UserId,
+					},
+				},
+			},
 			order: [["createdAt", "DESC"]],
 			raw: true,
 		});

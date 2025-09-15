@@ -191,6 +191,7 @@ exports.CategoriesFetchListController = async (payloadUser, payloadBody) => {
 				"Description",
 				"isUsing",
 				"isActive",
+				"isPrimitive",
 				"createdAt",
 				"updatedAt",
 				[
@@ -218,15 +219,18 @@ exports.CategoriesFetchListController = async (payloadUser, payloadBody) => {
                                 'isActive', fn_sub_categories.isActive,
                                 'createdAt', fn_sub_categories.createdAt,
                                 'updatedAt', fn_sub_categories.updatedAt,
-                                'TotalInCome', (SELECT  SUM(CASE WHEN fn_transactions.Action = 'In' THEN fn_transactions.Amount ELSE 0 END) FROM  fn_transactions
+                                'isPrimitive', fn_sub_categories.isPrimitive,
+                                'TotalInCome', (SELECT SUM(CASE WHEN fn_transactions.Action = 'In' THEN fn_transactions.Amount ELSE 0 END) FROM  fn_transactions
                                     WHERE fn_transactions.SubCategoryId = fn_sub_categories.SubCategoryId 
                                     AND fn_sub_categories.isDeleted = false
                                     AND fn_transactions.isDeleted = false
+									AND fn_transactions.UsedBy = ${UserId}
                                  ),
                                 'TotalExpense', (SELECT  SUM(CASE WHEN fn_transactions.Action = 'Out' THEN fn_transactions.Amount ELSE 0 END) FROM  fn_transactions
                                     WHERE fn_transactions.SubCategoryId = fn_sub_categories.SubCategoryId 
                                     AND fn_sub_categories.isDeleted = false
                                     AND fn_transactions.isDeleted = false
+									AND fn_transactions.UsedBy = ${UserId}
                                  )
                             )
                         )
@@ -591,6 +595,7 @@ exports.SubCategoryModifyController = async (payloadUser, payloadBody) => {
 					UsedBy: UserId,
 					OrgId: OrgId,
 					BranchId: BranchId,
+					isPrimitive :true,
 				});
 
 				return {
