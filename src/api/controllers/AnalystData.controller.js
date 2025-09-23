@@ -342,7 +342,7 @@ exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		let {Duration, Limit, SelectedDate} = payloadBody;
+		let {Duration, Limit, SelectedDate, CategoryId} = payloadBody;
 
 		if (!Duration) {
 			return {
@@ -361,12 +361,19 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 			isDeleted: false,
 		};
 
-		if (SelectedDate) {
+		if (SelectedDate && Duration === "YEAR") {
+			const {StartDate, EndDate} = await durationFindFun("This_Year", SelectedDate);
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (SelectedDate) {
 			const {StartDate, EndDate} = await durationFindFun("This_Month", SelectedDate);
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		} else {
 			const {StartDate, EndDate} = await durationFindFun("This_Month");
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		}
+
+		if (CategoryId) {
+			whereCondition.CategoryId =CategoryId 
 		}
 
 		let timeDurationFn;
@@ -463,7 +470,7 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		let {Duration, SelectedDate, Limit} = payloadBody;
+		let {Duration, SelectedDate, Limit, CategoryId} = payloadBody;
 
 		let timeDurationFn;
 
@@ -474,12 +481,19 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 			isDeleted: false,
 		};
 
-		if (SelectedDate) {
+		if (SelectedDate && Duration === "YEAR") {
+			const {StartDate, EndDate} = await durationFindFun("This_Year", SelectedDate);
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (SelectedDate) {
 			const {StartDate, EndDate} = await durationFindFun("This_Month", SelectedDate);
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		} else {
 			const {StartDate, EndDate} = await durationFindFun("This_Month");
 			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		}
+
+		if (CategoryId) {
+			whereCondition.CategoryId = CategoryId;
 		}
 
 		if (Duration === "WEEK") {

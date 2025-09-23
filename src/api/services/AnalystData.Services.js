@@ -106,7 +106,6 @@ exports.MonthlyDetailedSummaryService = async (req, res) => {
 };
 
 // Account-Based Analytics Services
-
 exports.AccountOverviewService = async (req, res) => {
 	const body = DevelopMood ? req.body : await decrypt(req.body?.key);
 	const {httpCode, result} = await Controller.AccountOverviewController(req?.user, body);

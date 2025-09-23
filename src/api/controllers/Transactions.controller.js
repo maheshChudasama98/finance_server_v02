@@ -530,6 +530,10 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
 			}
 		}
 
+		if (FilterBy.Action === "to") {
+			delete whereCondition.Action;
+		}
+
 		const fetchList = await TransactionsModel.findAll({
 			attributes: [
 				"TransactionId",

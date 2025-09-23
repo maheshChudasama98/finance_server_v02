@@ -4,7 +4,7 @@ const {Op, Sequelize} = require("sequelize");
 
 const db = require("../models/index");
 
-const {getPagination} = require("../../helpers/Actions.helper");
+const {getPagination, durationFindFun} = require("../../helpers/Actions.helper");
 const {SUCCESS_CODE, BAD_REQUEST_CODE, SERVER_ERROR_CODE} = require("../constants/statusCode");
 
 const CategoriesModel = db.CategoriesModel;
@@ -437,6 +437,68 @@ exports.CategoryActionController = async (payloadUser, payloadQuery) => {
 	}
 };
 
+exports.SelectedCategoryController = async (payloadUser, payloadBody) => {
+	try {
+		const {OrgId, BranchId, UserId} = payloadUser;
+		const {CategoryId, FilterBy, Duration} = payloadBody;
+
+		if (!CategoryId) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {status: false, message: "BAD_REQUEST_CODE"},
+			};
+		}
+
+		const whereCondition = {
+			CategoryId: CategoryId,
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+		};
+
+		if (FilterBy?.StartDate && FilterBy?.EndDate) {
+			const StartDate = new Date(FilterBy.StartDate);
+			const EndDate = new Date(FilterBy.EndDate);
+
+			if (StartDate.getTime() === EndDate.getTime()) {
+				EndDate.setHours(23, 59, 59, 999);
+			}
+
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (FilterBy?.StartDate) {
+			whereCondition.Date = {[Op.gte]: new Date(FilterBy.StartDate)};
+		} else if (FilterBy?.EndDate) {
+			const EndDate = new Date(FilterBy.EndDate);
+			EndDate.setHours(23, 59, 59, 999);
+			whereCondition.Date = {[Op.lte]: EndDate};
+		} else {
+			const {StartDate, EndDate} = await durationFindFun(Duration || "This_Month");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+
+			if (Duration == "All") {
+				delete whereCondition.Date;
+			}
+		}
+
+		const findRecodes = await TransactionsModel.findAll({
+			where: whereCondition,
+			raw: true,
+		});
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {status: true, message: "SUCCESS", data: findRecodes},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
 // ------------------------ || Sub-Categories Controllers || ------------------------  //
 exports.SubCategoriesFetchListController = async (payloadUser, payloadBody) => {
 	try {
@@ -595,7 +657,7 @@ exports.SubCategoryModifyController = async (payloadUser, payloadBody) => {
 					UsedBy: UserId,
 					OrgId: OrgId,
 					BranchId: BranchId,
-					isPrimitive :true,
+					isPrimitive: true,
 				});
 
 				return {
@@ -686,6 +748,68 @@ exports.SubCategoryActionController = async (payloadUser, payloadQuery) => {
 		return {
 			httpCode: SUCCESS_CODE,
 			result: {status: true, message: "SUCCESS"},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
+exports.SelectedSubCategoryController = async (payloadUser, payloadBody) => {
+	try {
+		const {OrgId, BranchId, UserId} = payloadUser;
+		const {SubCategoryId, FilterBy, Duration} = payloadBody;
+
+		if (!SubCategoryId) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {status: false, message: "BAD_REQUEST_CODE"},
+			};
+		}
+
+		const whereCondition = {
+			SubCategoryId: SubCategoryId,
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+		};
+
+		if (FilterBy?.StartDate && FilterBy?.EndDate) {
+			const StartDate = new Date(FilterBy.StartDate);
+			const EndDate = new Date(FilterBy.EndDate);
+
+			if (StartDate.getTime() === EndDate.getTime()) {
+				EndDate.setHours(23, 59, 59, 999);
+			}
+
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (FilterBy?.StartDate) {
+			whereCondition.Date = {[Op.gte]: new Date(FilterBy.StartDate)};
+		} else if (FilterBy?.EndDate) {
+			const EndDate = new Date(FilterBy.EndDate);
+			EndDate.setHours(23, 59, 59, 999);
+			whereCondition.Date = {[Op.lte]: EndDate};
+		} else {
+			const {StartDate, EndDate} = await durationFindFun(Duration || "This_Month");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+
+			if (Duration == "All") {
+				delete whereCondition.Date;
+			}
+		}
+
+		const findRecodes = await TransactionsModel.findAll({
+			where: whereCondition,
+			raw: true,
+		});
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {status: true, message: "SUCCESS", data: findRecodes},
 		};
 	} catch (error) {
 		console.log(`\x1b[91m ${error} \x1b[91m`);
@@ -957,6 +1081,70 @@ exports.LabelActionController = async (payloadUser, payloadQuery) => {
 		return {
 			httpCode: SUCCESS_CODE,
 			result: {status: true, message: "SUCCESS"},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
+exports.SelectedLabelController = async (payloadUser, payloadBody) => {
+	try {
+		const {OrgId, BranchId, UserId} = payloadUser;
+		const {LabelId, FilterBy, Duration} = payloadBody;
+
+		if (!LabelId) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {status: false, message: "BAD_REQUEST_CODE"},
+			};
+		}
+
+		const tagConditions =  Sequelize.literal(`FIND_IN_SET(${LabelId}, Tags)`);
+
+		const whereCondition = {
+			Tags: tagConditions,
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+		};
+
+		if (FilterBy?.StartDate && FilterBy?.EndDate) {
+			const StartDate = new Date(FilterBy.StartDate);
+			const EndDate = new Date(FilterBy.EndDate);
+
+			if (StartDate.getTime() === EndDate.getTime()) {
+				EndDate.setHours(23, 59, 59, 999);
+			}
+
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (FilterBy?.StartDate) {
+			whereCondition.Date = {[Op.gte]: new Date(FilterBy.StartDate)};
+		} else if (FilterBy?.EndDate) {
+			const EndDate = new Date(FilterBy.EndDate);
+			EndDate.setHours(23, 59, 59, 999);
+			whereCondition.Date = {[Op.lte]: EndDate};
+		} else {
+			const {StartDate, EndDate} = await durationFindFun(Duration || "This_Month");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+
+			if (Duration == "All") {
+				delete whereCondition.Date;
+			}
+		}
+
+		const findRecodes = await TransactionsModel.findAll({
+			where: whereCondition,
+			raw: true,
+		});
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {status: true, message: "SUCCESS", data: findRecodes},
 		};
 	} catch (error) {
 		console.log(`\x1b[91m ${error} \x1b[91m`);
@@ -1281,6 +1469,68 @@ exports.AccountActionController = async (payloadUser, payloadQuery) => {
 	}
 };
 
+exports.SelectedAccountController = async (payloadUser, payloadBody) => {
+	try {
+		const {OrgId, BranchId, UserId} = payloadUser;
+		const {AccountId, FilterBy, Duration} = payloadBody;
+
+		if (!AccountId) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {status: false, message: "BAD_REQUEST_CODE"},
+			};
+		}
+
+		const whereCondition = {
+			AccountId: AccountId,
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+		};
+
+		if (FilterBy?.StartDate && FilterBy?.EndDate) {
+			const StartDate = new Date(FilterBy.StartDate);
+			const EndDate = new Date(FilterBy.EndDate);
+
+			if (StartDate.getTime() === EndDate.getTime()) {
+				EndDate.setHours(23, 59, 59, 999);
+			}
+
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (FilterBy?.StartDate) {
+			whereCondition.Date = {[Op.gte]: new Date(FilterBy.StartDate)};
+		} else if (FilterBy?.EndDate) {
+			const EndDate = new Date(FilterBy.EndDate);
+			EndDate.setHours(23, 59, 59, 999);
+			whereCondition.Date = {[Op.lte]: EndDate};
+		} else {
+			const {StartDate, EndDate} = await durationFindFun(Duration || "This_Year");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+
+			if (Duration == "All") {
+				delete whereCondition.Date;
+			}
+		}
+
+		const findRecodes = await TransactionsModel.findAll({
+			where: whereCondition,
+			raw: true,
+		});
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {status: true, message: "SUCCESS", data: findRecodes},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
 // ------------------------ || Parties Controllers || ------------------------  //
 exports.PartiesFetchListController = async (payloadUser, payloadBody) => {
 	try {
@@ -1589,6 +1839,68 @@ exports.PartyActionController = async (payloadUser, payloadQuery) => {
 		return {
 			httpCode: SUCCESS_CODE,
 			result: {status: true, message: "SUCCESS"},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
+exports.SelectedPartyController = async (payloadUser, payloadBody) => {
+	try {
+		const {OrgId, BranchId, UserId} = payloadUser;
+		const {PartyId, FilterBy, Duration} = payloadBody;
+
+		if (!PartyId) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {status: false, message: "BAD_REQUEST_CODE"},
+			};
+		}
+
+		const whereCondition = {
+			PartyId: PartyId,
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+		};
+
+		if (FilterBy?.StartDate && FilterBy?.EndDate) {
+			const StartDate = new Date(FilterBy.StartDate);
+			const EndDate = new Date(FilterBy.EndDate);
+
+			if (StartDate.getTime() === EndDate.getTime()) {
+				EndDate.setHours(23, 59, 59, 999);
+			}
+
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (FilterBy?.StartDate) {
+			whereCondition.Date = {[Op.gte]: new Date(FilterBy.StartDate)};
+		} else if (FilterBy?.EndDate) {
+			const EndDate = new Date(FilterBy.EndDate);
+			EndDate.setHours(23, 59, 59, 999);
+			whereCondition.Date = {[Op.lte]: EndDate};
+		} else {
+			const {StartDate, EndDate} = await durationFindFun(Duration || "This_Month");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+
+			if (Duration == "All") {
+				delete whereCondition.Date;
+			}
+		}
+
+		const findRecodes = await TransactionsModel.findAll({
+			where: whereCondition,
+			raw: true,
+		});
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {status: true, message: "SUCCESS", data: findRecodes},
 		};
 	} catch (error) {
 		console.log(`\x1b[91m ${error} \x1b[91m`);
@@ -1965,6 +2277,68 @@ exports.LongsActionController = async (payloadUser, payloadQuery) => {
 		return {
 			httpCode: SUCCESS_CODE,
 			result: {status: true, message: "SUCCESS"},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
+exports.SelectedLongsController = async (payloadUser, payloadBody) => {
+	try {
+		const {OrgId, BranchId, UserId} = payloadUser;
+		const {LoanId, FilterBy, Duration} = payloadBody;
+
+		if (!LoanId) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {status: false, message: "BAD_REQUEST_CODE"},
+			};
+		}
+
+		const whereCondition = {
+			LoanId: LoanId,
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+		};
+
+		if (FilterBy?.StartDate && FilterBy?.EndDate) {
+			const StartDate = new Date(FilterBy.StartDate);
+			const EndDate = new Date(FilterBy.EndDate);
+
+			if (StartDate.getTime() === EndDate.getTime()) {
+				EndDate.setHours(23, 59, 59, 999);
+			}
+
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+		} else if (FilterBy?.StartDate) {
+			whereCondition.Date = {[Op.gte]: new Date(FilterBy.StartDate)};
+		} else if (FilterBy?.EndDate) {
+			const EndDate = new Date(FilterBy.EndDate);
+			EndDate.setHours(23, 59, 59, 999);
+			whereCondition.Date = {[Op.lte]: EndDate};
+		} else {
+			const {StartDate, EndDate} = await durationFindFun(Duration || "This_Month");
+			whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+
+			if (Duration == "All") {
+				delete whereCondition.Date;
+			}
+		}
+
+		const findRecodes = await TransactionsModel.findAll({
+			where: whereCondition,
+			raw: true,
+		});
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {status: true, message: "SUCCESS", data: findRecodes},
 		};
 	} catch (error) {
 		console.log(`\x1b[91m ${error} \x1b[91m`);
