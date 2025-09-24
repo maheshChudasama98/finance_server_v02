@@ -637,7 +637,7 @@ exports.SettingModifyController = async (payloadUser, payloadBody) => {
 	try {
 		let {UserId} = payloadUser;
 
-		const {DefaultTimeFrame, DefaultDuration, DefaultDateFormat, DefaultCurrency, AmountHide} = payloadBody;
+		const {DefaultTimeFrame, DefaultDuration, DefaultDateFormat, DefaultCurrency, AmountHide, ThemeMode, ThemePrimary} = payloadBody;
 
 		if (!UserId) {
 			return {
@@ -660,6 +660,8 @@ exports.SettingModifyController = async (payloadUser, payloadBody) => {
 				DefaultDateFormat,
 				DefaultCurrency,
 				AmountHide: AmountHide ? 1 : 0,
+				ThemeMode: ThemeMode || 'light',
+				ThemePrimary: ThemePrimary || null,
 				UsedBy: UserId,
 			});
 
@@ -675,6 +677,8 @@ exports.SettingModifyController = async (payloadUser, payloadBody) => {
 					DefaultDateFormat,
 					DefaultCurrency,
 					AmountHide: AmountHide ? 1 : 0,
+					ThemeMode: ThemeMode || target.ThemeMode || 'light',
+					ThemePrimary: typeof ThemePrimary !== 'undefined' ? ThemePrimary : target.ThemePrimary,
 				},
 				{
 					where: {

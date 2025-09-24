@@ -38,6 +38,16 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.BOOLEAN,
             allowNull: true,
             defaultValue: true,
+        },
+        ThemeMode: {
+            type: DataTypes.STRING(10),
+            allowNull: false,
+            defaultValue: "light",
+        },
+        ThemePrimary: {
+            type: DataTypes.STRING(20),
+            allowNull: true,
+            defaultValue: null,
         }
     }, {
         modelName: 'setting',
