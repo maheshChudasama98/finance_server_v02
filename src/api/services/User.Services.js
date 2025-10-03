@@ -75,3 +75,14 @@ exports.SettingModifyService = async (req, res) => {
 		data: DevelopMood ? result?.data : encrypt(result?.data),
 	});
 };
+
+exports.UserProfileUpdateService = async (req, res) => {
+	const body = DevelopMood ? req.body : await decrypt(req.body?.key);
+	const {httpCode, result} = await Controller.UserProfileUpdateController(req?.user, body, req.files);
+
+	return res.status(httpCode).send({
+		status: result?.status,
+		message: httpCode == SERVER_ERROR_CODE ? result?.message : getMessage(req.user.Language, result?.message),
+		data: DevelopMood ? result?.data : encrypt(result?.data),
+	});
+};

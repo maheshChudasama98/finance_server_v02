@@ -173,6 +173,8 @@ exports.UserInfoController = async (payloadUser) => {
 				[Sequelize.col("setting.DefaultDateFormat"), "DefaultDateFormat"],
 				[Sequelize.col("setting.DefaultCurrency"), "DefaultCurrency"],
 				[Sequelize.col("setting.AmountHide"), "AmountHide"],
+				[Sequelize.col("setting.ThemeMode"), "ThemeMode"],
+				[Sequelize.col("setting.ThemePrimary"), "ThemePrimary"],
 				[Sequelize.literal("CONCAT(FirstName, ' ', LastName)"), "FullName"],
 				[Sequelize.literal(`CASE  WHEN ImgPath IS NOT NULL THEN CONCAT('${UserProfileImagePath}','/', UUID, '/', ImgPath)  ELSE NULL  END`), "ImgPath"],
 				[
@@ -694,6 +696,133 @@ exports.SettingModifyController = async (payloadUser, payloadBody) => {
 		}
 	} catch (error) {
 		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {
+				status: false,
+				message: error.message,
+			},
+		};
+	}
+};
+
+exports.UserProfileUpdateController = async (payloadUser, payloadBody, payloadFile) => {
+	try {
+		const {UserId} = payloadUser;
+		const {FirstName, LastName, UserEmail, UserNumber, Language, RoleId} = payloadBody;
+
+		// Validate required fields
+		if (!FirstName || !LastName || !UserEmail) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {status: false, message: "BAD_REQUEST_CODE"},
+			};
+		}
+
+		// Find the current user
+		const currentUser = await UserModel.findOne({
+			where: {
+				UserId: UserId,
+				isDeleted: false,
+			},
+			raw: true,
+		});
+
+		if (!currentUser) {
+			return {
+				httpCode: BAD_REQUEST_CODE,
+				result: {status: false, message: "USER_NOT_FOUND"},
+			};
+		}
+
+		// Check if email is being changed and if it's already taken by another user
+		if (UserEmail !== currentUser.Email) {
+			const emailExists = await UserModel.findOne({
+				where: {
+					Email: UserEmail,
+					UserId: {[Op.ne]: UserId},
+					isDeleted: false,
+				},
+				raw: true,
+			});
+
+			if (emailExists) {
+				return {
+					httpCode: BAD_REQUEST_CODE,
+					result: {status: false, message: "EMAIL_ALREADY_EXISTS"},
+				};
+			}
+		}
+
+		// Check if mobile number is being changed and if it's already taken by another user
+		if (UserNumber && UserNumber !== currentUser.Mobile) {
+			const mobileExists = await UserModel.findOne({
+				where: {
+					Mobile: UserNumber,
+					UserId: {[Op.ne]: UserId},
+					isDeleted: false,
+				},
+				raw: true,
+			});
+
+			if (mobileExists) {
+				return {
+					httpCode: BAD_REQUEST_CODE,
+					result: {status: false, message: "MOBILE_ALREADY_EXISTS"},
+				};
+			}
+		}
+
+		// Handle profile image upload
+		let imagePath = currentUser.ImgPath;
+		if (payloadFile && payloadFile.ImgPath) {
+			const uuid = currentUser.UUID || uuidv4();
+			imagePath = await FileUpload(payloadFile.ImgPath, uuid, UserProfileImagePath);
+		}
+
+		// Update user profile
+		await UserModel.update(
+			{
+				FirstName: FirstName.trim(),
+				LastName: LastName.trim(),
+				Email: UserEmail.trim(),
+				Mobile: UserNumber || null,
+				Language: Language || 'EN',
+				ImgPath: imagePath,
+				UpdatedAt: new Date(),
+			},
+			{
+				where: {
+					UserId: UserId,
+				},
+			}
+		);
+
+		// Update role if provided and user has org access
+		if (RoleId) {
+			await OrgUsersModel.update(
+				{
+					RoleId: RoleId,
+					UpdatedAt: new Date(),
+				},
+				{
+					where: {
+						UserId: UserId,
+						isDeleted: false,
+					},
+				}
+			);
+		}
+
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {
+				status: true,
+				message: "PROFILE_UPDATED_SUCCESSFULLY",
+			},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m UserProfileUpdateController Error: ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {

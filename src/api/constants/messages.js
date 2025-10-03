@@ -26,6 +26,10 @@ module.exports.ENGLISH = {
     USER_CREATED: "User creation was a successful!",
     USER_UPDATE: "Profile update was successful",
     USER_DELETED: "This user deleted was successful",
+    PROFILE_UPDATED_SUCCESSFULLY: "Profile updated successfully",
+    USER_NOT_FOUND: "User not found",
+    EMAIL_ALREADY_EXISTS: "Email already exists",
+    MOBILE_ALREADY_EXISTS: "Mobile number already exists",
     UNAUTHORIZED: "You are not authorized to access this resource.",
 
     // Branch controller messages
@@ -59,6 +63,10 @@ module.exports.GUJARATI = {
     CURRENT_PASSWORD_NOT_VALID: "Your current password not valid.",
 
     // User controller message
+    PROFILE_UPDATED_SUCCESSFULLY: "Profile updated successfully",
+    USER_NOT_FOUND: "User not found",
+    EMAIL_ALREADY_EXISTS: "Email already exists",
+    MOBILE_ALREADY_EXISTS: "Mobile number already exists",
     USER_NOT_VALID: "This user not find!",
     USER_ALREADY_REGISTERED: "This user has already been registered with a different device.",
     USER_REGISTERED_SUCCESS: "This user registered was a successful.",

@@ -6,6 +6,7 @@ module.exports = (app) => {
 	app.get("/api/user/info", TokenMiddleware, UserService.UserInfoService);
 	app.post("/api/user/list", TokenMiddleware, UserService.UserListService);
 	app.post("/api/user/modify", TokenMiddleware, UserService.UserModifyService);
+	app.post("/api/user/profile/update", TokenMiddleware, UserService.UserProfileUpdateService);
 
 	app.get("/api/user/default", TokenMiddleware, UserService.DefaultBrachService);
 

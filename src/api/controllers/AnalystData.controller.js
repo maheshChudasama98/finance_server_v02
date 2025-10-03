@@ -373,7 +373,7 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 		}
 
 		if (CategoryId) {
-			whereCondition.CategoryId =CategoryId 
+			whereCondition.CategoryId = CategoryId;
 		}
 
 		let timeDurationFn;
@@ -1506,14 +1506,14 @@ exports.MonthlyReportController = async (payloadUser, payloadBody) => {
 exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;
-		const {Month, Year, AccountId, PartyId, CategoryId, SubCategoryId} = payloadBody;
+		const {Month, Year, SelectedDate, AccountId, PartyId, CategoryId, SubCategoryId} = payloadBody;
 
-		if (!Month || !Year) {
+		if (!SelectedDate && (!Month || !Year)) {
 			return {
 				httpCode: BAD_REQUEST_CODE,
 				result: {
 					status: false,
-					message: "Month and Year are required",
+					message: "Either SelectedDate or both Month and Year are required",
 				},
 			};
 		}
@@ -1540,9 +1540,77 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 		}
 
 		// Set date range for the month
-		const startDate = new Date(Year, Month - 1, 1);
-		const endDate = new Date(Year, Month, 0, 23, 59, 59, 999);
-		whereCondition.Date = {[Op.between]: [startDate, endDate]};
+		// const startDate = new Date(Year, Month - 1, 1);
+		// const endDate = new Date(Year, Month, 0, 23, 59, 59, 999);
+
+		// const {StartDate, EndDate} = await durationFindFun("This_Month", SelectedDate);
+
+		let dateToUse;
+
+		if (SelectedDate) {
+			// Use the provided SelectedDate
+			dateToUse = new Date(SelectedDate);
+		} else if (Month && Year) {
+			// Build date from Month + Year
+			const monthIndex = MonthList.findIndex((m) => m.Key === Month); // 0-based
+			dateToUse = new Date(Year, monthIndex, 1);
+		} else {
+			// Fallback to current month/year
+			const now = new Date();
+			dateToUse = new Date(now.getFullYear(), now.getMonth(), 1);
+		}
+
+		const {StartDate, EndDate} = await durationFindFun("This_Month", dateToUse);
+
+		whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+
+		// --------------------------------
+
+		const results = await TransactionsModel.findOne({
+			attributes: [
+				[fn("MONTH", col("Date")), "duration"],
+				[fn("MONTHNAME", col("Date")), "monthName"],
+				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out') THEN Amount ELSE 0 END")), "totalNetExpense"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Installment') THEN Amount ELSE 0 END")), "totalInstallment"],
+				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment') THEN Amount ELSE 0 END")), "totalOut"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Return') THEN Amount ELSE 0 END")), "totalReturn"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Refund') THEN Amount ELSE 0 END")), "totalRefund"],
+				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Return', 'Payer') THEN Amount ELSE 0 END")), "totalExpense"],
+				[
+					literal(`SUM(CASE WHEN Action IN ('In', 'Credit','Refund') THEN Amount ELSE 0 END) 
+             - SUM(CASE WHEN Action IN ('Out', 'Installment', 'Debit', 'Payer', 'Investment', 'Return' ) THEN Amount ELSE 0 END)`),
+					"netSavings",
+				],
+
+	// 			// Savings Rate (% of Income)
+	// 			[
+	// 				literal(`(
+    //     (SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END) 
+    //      - SUM(CASE WHEN Action IN ('Out', 'Installment', 'Debit', 'Payer', 'Investment', 'Return', 'Refund') THEN Amount ELSE 0 END))
+    //     / NULLIF(SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END),0)
+    //   ) * 100`),
+	// 				"savingsRate",
+	// 			],
+
+	// 			// % of Income (Net Savings as % of total Income)
+	// 			[
+	// 				literal(`(
+    //     SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END) - 
+    //     SUM(CASE WHEN Action IN ('Out', 'Installment', 'Debit', 'Payer', 'Investment', 'Return', 'Refund') THEN Amount ELSE 0 END)
+    //   ) / NULLIF(SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END),0) * 100`),
+	// 				"percentOfIncome",
+	// 			],
+			],
+			where: whereCondition,
+			raw: true,
+		});
+
+
+		// --------------------------------
 
 		// Get all transactions for the month
 		const transactions = await TransactionsModel.findAll({
@@ -1770,31 +1838,63 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 			}
 		});
 
-		// Convert summaries to arrays
-		const categorySummaryArray = Object.entries(categorySummary).map(([name, data]) => ({
-			name,
-			...data,
-		}));
+		// Convert summaries to arrays with enhanced calculations
+		const categorySummaryArray = Object.entries(categorySummary).map(([name, data]) => {
+			const income = (data.In || 0) + (data.Buyer || 0) + (data.Refund || 0);
+			const expense = (data.Out || 0) + (data.Installment || 0) + (data.Return || 0) + (data.Payer || 0);
+			const net = income - expense;
+			return {
+				name,
+				income,
+				expense,
+				net,
+				...data,
+			};
+		}).sort((a, b) => b.income - a.income);
 
-		const subCategorySummaryArray = Object.entries(subCategorySummary).map(([name, data]) => ({
-			name,
-			...data,
-		}));
+		const subCategorySummaryArray = Object.entries(subCategorySummary).map(([name, data]) => {
+			const income = (data.In || 0) + (data.Buyer || 0) + (data.Refund || 0);
+			const expense = (data.Out || 0) + (data.Installment || 0) + (data.Return || 0) + (data.Payer || 0);
+			const net = income - expense;
+			return {
+				name,
+				income,
+				expense,
+				net,
+				...data,
+			};
+		}).sort((a, b) => b.income - a.income);
 
-		const partySummaryArray = Object.entries(partySummary).map(([name, data]) => ({
-			name,
-			...data,
-		}));
+		const partySummaryArray = Object.entries(partySummary).map(([name, data]) => {
+			const credit = (data.Credit || 0) + (data.Buyer || 0) + (data.Refund || 0);
+			const debit = (data.Debit || 0) + (data.Payer || 0) + (data.Return || 0);
+			const net = credit - debit;
+			return {
+				name,
+				credit,
+				debit,
+				net,
+				...data,
+			};
+		}).sort((a, b) => b.credit - a.credit);
 
-		const accountSummaryArray = Object.entries(accountSummary).map(([name, data]) => ({
-			name,
-			...data,
-		}));
+		const accountSummaryArray = Object.entries(accountSummary).map(([name, data]) => {
+			const income = (data.In || 0) + (data.Buyer || 0) + (data.Refund || 0);
+			const expense = (data.Out || 0) + (data.Installment || 0) + (data.Return || 0) + (data.Payer || 0);
+			const net = income - expense;
+			return {
+				name,
+				income,
+				expense,
+				net,
+				...data,
+			};
+		}).sort((a, b) => b.income - a.income);
 
 		const actionSummaryArray = Object.entries(actionSummary).map(([action, amount]) => ({
 			action,
 			amount,
-		}));
+		})).sort((a, b) => b.amount - a.amount);
 
 		const dailySummaryArray = Object.values(dailySummary).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -1802,12 +1902,64 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 		const netIncome = realIncome - realExpense;
 		const netCredit = totalCredit - totalDebit;
 
+		// Additional Analytics
+		const savingsRate = realIncome > 0 ? ((netIncome / realIncome) * 100) : 0;
+		const expenseRatio = realIncome > 0 ? ((realExpense / realIncome) * 100) : 0;
+		const investmentRatio = realIncome > 0 ? ((totalInvestment / realIncome) * 100) : 0;
+
+		// Top performing categories
+		const topIncomeCategories = categorySummaryArray.slice(0, 5);
+		const topExpenseCategories = categorySummaryArray
+			.filter(cat => cat.expense > 0)
+			.sort((a, b) => b.expense - a.expense)
+			.slice(0, 5);
+
+		// Daily insights
+		const avgDailyIncome = dailySummaryArray.length > 0 ? 
+			dailySummaryArray.reduce((sum, day) => sum + day.realIncome, 0) / dailySummaryArray.length : 0;
+		const avgDailyExpense = dailySummaryArray.length > 0 ? 
+			dailySummaryArray.reduce((sum, day) => sum + day.realExpense, 0) / dailySummaryArray.length : 0;
+
+		// Transaction patterns
+		const transactionPatterns = {
+			highestIncomeDay: dailySummaryArray.reduce((max, day) => 
+				day.realIncome > max.realIncome ? day : max, { realIncome: 0, date: null }),
+			highestExpenseDay: dailySummaryArray.reduce((max, day) => 
+				day.realExpense > max.realExpense ? day : max, { realExpense: 0, date: null }),
+			mostActiveDay: dailySummaryArray.reduce((max, day) => 
+				day.transactions.length > max.transactions.length ? day : max, { transactions: [], date: null }),
+		};
+
+		// Financial health indicators
+		const financialHealth = {
+			savingsRate: savingsRate,
+			expenseRatio: expenseRatio,
+			investmentRatio: investmentRatio,
+			isHealthy: savingsRate >= 20 && expenseRatio <= 80,
+			recommendations: []
+		};
+
+		// Generate recommendations
+		if (savingsRate < 20) {
+			financialHealth.recommendations.push("Consider increasing your savings rate to at least 20%");
+		}
+		if (expenseRatio > 80) {
+			financialHealth.recommendations.push("Your expenses are high relative to income. Consider budgeting");
+		}
+		if (investmentRatio < 10) {
+			financialHealth.recommendations.push("Consider investing more for long-term growth");
+		}
+		if (topExpenseCategories.length > 0 && topExpenseCategories[0].expense > realIncome * 0.3) {
+			financialHealth.recommendations.push(`High spending in ${topExpenseCategories[0].name}. Consider reducing expenses`);
+		}
+
 		return {
 			httpCode: SUCCESS_CODE,
 			result: {
 				status: true,
 				message: "SUCCESS",
 				data: {
+					overView: results,
 					month: Month,
 					year: Year,
 					monthName: new Date(Year, Month - 1).toLocaleDateString("en-US", {month: "long"}),
@@ -1855,6 +2007,19 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 						uniqueParties: Object.keys(partySummary).length,
 						uniqueAccounts: Object.keys(accountSummary).length,
 						daysWithTransactions: Object.keys(dailySummary).length,
+					},
+
+					// Enhanced Analytics
+					analytics: {
+						savingsRate: savingsRate,
+						expenseRatio: expenseRatio,
+						investmentRatio: investmentRatio,
+						avgDailyIncome: avgDailyIncome,
+						avgDailyExpense: avgDailyExpense,
+						topIncomeCategories: topIncomeCategories,
+						topExpenseCategories: topExpenseCategories,
+						transactionPatterns: transactionPatterns,
+						financialHealth: financialHealth,
 					},
 				},
 			},

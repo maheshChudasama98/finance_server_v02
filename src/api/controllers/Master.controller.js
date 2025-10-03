@@ -824,7 +824,7 @@ exports.SelectedSubCategoryController = async (payloadUser, payloadBody) => {
 exports.LabelsFetchListController = async (payloadUser, payloadBody) => {
 	try {
 		const {OrgId, BranchId, UserId} = payloadUser;
-		const {Action, Page, PageSize, FilterBy} = payloadBody;
+		const {Action, Page, PageSize, FilterBy, SearchKey} = payloadBody;
 
 		if (Action) {
 			if (!Page || !PageSize) {
@@ -876,6 +876,10 @@ exports.LabelsFetchListController = async (payloadUser, payloadBody) => {
 			whereCondition.createdAt = {[Op.lte]: EndDate};
 		}
 
+		if (SearchKey) {
+			whereCondition.LabelName = {[Op.like]: "%" + SearchKey + "%"};
+		}
+
 		const fetchList = await LabelsModel.findAll({
 			attributes: [
 				"LabelId",
@@ -905,7 +909,7 @@ exports.LabelsFetchListController = async (payloadUser, payloadBody) => {
 			where: whereCondition,
 			limit: limit,
 			offset: offset,
-			order: [["LabelName", "DESC"]],
+			order: [["LabelName", "ASC"]],
 			raw: true,
 		});
 
@@ -1103,7 +1107,7 @@ exports.SelectedLabelController = async (payloadUser, payloadBody) => {
 			};
 		}
 
-		const tagConditions =  Sequelize.literal(`FIND_IN_SET(${LabelId}, Tags)`);
+		const tagConditions = Sequelize.literal(`FIND_IN_SET(${LabelId}, Tags)`);
 
 		const whereCondition = {
 			Tags: tagConditions,
