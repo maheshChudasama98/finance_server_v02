@@ -1586,29 +1586,28 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 					"netSavings",
 				],
 
-	// 			// Savings Rate (% of Income)
-	// 			[
-	// 				literal(`(
-    //     (SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END) 
-    //      - SUM(CASE WHEN Action IN ('Out', 'Installment', 'Debit', 'Payer', 'Investment', 'Return', 'Refund') THEN Amount ELSE 0 END))
-    //     / NULLIF(SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END),0)
-    //   ) * 100`),
-	// 				"savingsRate",
-	// 			],
+				// 			// Savings Rate (% of Income)
+				// 			[
+				// 				literal(`(
+				//     (SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END)
+				//      - SUM(CASE WHEN Action IN ('Out', 'Installment', 'Debit', 'Payer', 'Investment', 'Return', 'Refund') THEN Amount ELSE 0 END))
+				//     / NULLIF(SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END),0)
+				//   ) * 100`),
+				// 				"savingsRate",
+				// 			],
 
-	// 			// % of Income (Net Savings as % of total Income)
-	// 			[
-	// 				literal(`(
-    //     SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END) - 
-    //     SUM(CASE WHEN Action IN ('Out', 'Installment', 'Debit', 'Payer', 'Investment', 'Return', 'Refund') THEN Amount ELSE 0 END)
-    //   ) / NULLIF(SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END),0) * 100`),
-	// 				"percentOfIncome",
-	// 			],
+				// 			// % of Income (Net Savings as % of total Income)
+				// 			[
+				// 				literal(`(
+				//     SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END) -
+				//     SUM(CASE WHEN Action IN ('Out', 'Installment', 'Debit', 'Payer', 'Investment', 'Return', 'Refund') THEN Amount ELSE 0 END)
+				//   ) / NULLIF(SUM(CASE WHEN Action IN ('In', 'Credit') THEN Amount ELSE 0 END),0) * 100`),
+				// 				"percentOfIncome",
+				// 			],
 			],
 			where: whereCondition,
 			raw: true,
 		});
-
 
 		// --------------------------------
 
@@ -1649,8 +1648,49 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 					`),
 					"Details",
 				],
+				[
+					Sequelize.literal(`(
+							SELECT JSON_OBJECT(
+								'AccountId', fn_accounts.AccountId,
+								'AccountName', fn_accounts.AccountName,
+								'ImgPath', fn_accounts.ImgPath,
+								'Icon', fn_accounts.Icon,
+								'Color', fn_accounts.Color
+								) 
+							FROM fn_accounts AS fn_accounts 
+							WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId 
+							)`),
+					"TransferDetails",
+				],
+				[
+					Sequelize.literal(`(
+							SELECT JSON_OBJECT(
+								'PartyId', parties.PartyId,
+								'PartyFirstName', parties.PartyFirstName,
+								'PartyLastName', parties.PartyLastName,
+								'PartyAvatar', parties.PartyAvatar,
+								'FullName', CONCAT(parties.PartyFirstName,' ', parties.PartyLastName)
+								) 
+							FROM fn_parties AS parties 
+							WHERE fn_transactions.PartyId = parties.PartyId 
+							)`),
+					"PartyDetails",
+				],
+				[
+					Sequelize.literal(`(
+					SELECT JSON_ARRAYAGG(
+					  JSON_OBJECT(
+						'LabelId', fn_labels.LabelId,
+						'LabelName', fn_labels.LabelName
+					  )
+					) 
+					FROM fn_labels AS fn_labels 
+					WHERE FIND_IN_SET(fn_labels.LabelId, fn_transactions.Tags)
+				  )`),
+					"TagList",
+				],
 			],
-			where: whereCondition,
+			where: {...whereCondition, Action: {[Op.not]: "To"}},
 			include: [
 				{
 					model: AccountsModel,
@@ -1830,6 +1870,12 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 			}
 			dailySummary[dateKey].transactions.push(tx);
 
+			if (tx.Action === "In") {
+				dailySummary[dateKey].totalIn += amount;
+			}
+			if (tx.Action === "Out") {
+				dailySummary[dateKey].totalOut += amount;
+			}
 			if (tx.Action === "In" || tx.Action === "Buyer" || tx.Action === "Refund") {
 				dailySummary[dateKey].realIncome += amount;
 			}
@@ -1839,62 +1885,72 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 		});
 
 		// Convert summaries to arrays with enhanced calculations
-		const categorySummaryArray = Object.entries(categorySummary).map(([name, data]) => {
-			const income = (data.In || 0) + (data.Buyer || 0) + (data.Refund || 0);
-			const expense = (data.Out || 0) + (data.Installment || 0) + (data.Return || 0) + (data.Payer || 0);
-			const net = income - expense;
-			return {
-				name,
-				income,
-				expense,
-				net,
-				...data,
-			};
-		}).sort((a, b) => b.income - a.income);
+		const categorySummaryArray = Object.entries(categorySummary)
+			.map(([name, data]) => {
+				const income = (data.In || 0) + (data.Buyer || 0) + (data.Refund || 0);
+				const expense = (data.Out || 0) + (data.Installment || 0) + (data.Return || 0) + (data.Payer || 0);
+				const net = income - expense;
+				return {
+					name,
+					income,
+					expense,
+					net,
+					...data,
+				};
+			})
+			.sort((a, b) => b.income - a.income);
 
-		const subCategorySummaryArray = Object.entries(subCategorySummary).map(([name, data]) => {
-			const income = (data.In || 0) + (data.Buyer || 0) + (data.Refund || 0);
-			const expense = (data.Out || 0) + (data.Installment || 0) + (data.Return || 0) + (data.Payer || 0);
-			const net = income - expense;
-			return {
-				name,
-				income,
-				expense,
-				net,
-				...data,
-			};
-		}).sort((a, b) => b.income - a.income);
+		const subCategorySummaryArray = Object.entries(subCategorySummary)
+			.map(([name, data]) => {
+				const income = (data.In || 0) + (data.Buyer || 0) + (data.Refund || 0);
+				const expense = (data.Out || 0) + (data.Installment || 0) + (data.Return || 0) + (data.Payer || 0);
+				const net = income - expense;
+				return {
+					name,
+					income,
+					expense,
+					net,
+					...data,
+				};
+			})
+			.sort((a, b) => b.income - a.income);
 
-		const partySummaryArray = Object.entries(partySummary).map(([name, data]) => {
-			const credit = (data.Credit || 0) + (data.Buyer || 0) + (data.Refund || 0);
-			const debit = (data.Debit || 0) + (data.Payer || 0) + (data.Return || 0);
-			const net = credit - debit;
-			return {
-				name,
-				credit,
-				debit,
-				net,
-				...data,
-			};
-		}).sort((a, b) => b.credit - a.credit);
+		const partySummaryArray = Object.entries(partySummary)
+			.map(([name, data]) => {
+				const credit = (data.Credit || 0) + (data.Buyer || 0) + (data.Refund || 0);
+				const debit = (data.Debit || 0) + (data.Payer || 0) + (data.Return || 0);
+				const net = credit - debit;
+				return {
+					name,
+					credit,
+					debit,
+					net,
+					...data,
+				};
+			})
+			.sort((a, b) => b.credit - a.credit);
 
-		const accountSummaryArray = Object.entries(accountSummary).map(([name, data]) => {
-			const income = (data.In || 0) + (data.Buyer || 0) + (data.Refund || 0);
-			const expense = (data.Out || 0) + (data.Installment || 0) + (data.Return || 0) + (data.Payer || 0);
-			const net = income - expense;
-			return {
-				name,
-				income,
-				expense,
-				net,
-				...data,
-			};
-		}).sort((a, b) => b.income - a.income);
+		const accountSummaryArray = Object.entries(accountSummary)
+			.map(([name, data]) => {
+				const income = (data.In || 0) + (data.Buyer || 0) + (data.Refund || 0);
+				const expense = (data.Out || 0) + (data.Installment || 0) + (data.Return || 0) + (data.Payer || 0);
+				const net = income - expense;
+				return {
+					name,
+					income,
+					expense,
+					net,
+					...data,
+				};
+			})
+			.sort((a, b) => b.income - a.income);
 
-		const actionSummaryArray = Object.entries(actionSummary).map(([action, amount]) => ({
-			action,
-			amount,
-		})).sort((a, b) => b.amount - a.amount);
+		const actionSummaryArray = Object.entries(actionSummary)
+			.map(([action, amount]) => ({
+				action,
+				amount,
+			}))
+			.sort((a, b) => b.amount - a.amount);
 
 		const dailySummaryArray = Object.values(dailySummary).sort((a, b) => a.date.localeCompare(b.date));
 
@@ -1903,31 +1959,26 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 		const netCredit = totalCredit - totalDebit;
 
 		// Additional Analytics
-		const savingsRate = realIncome > 0 ? ((netIncome / realIncome) * 100) : 0;
-		const expenseRatio = realIncome > 0 ? ((realExpense / realIncome) * 100) : 0;
-		const investmentRatio = realIncome > 0 ? ((totalInvestment / realIncome) * 100) : 0;
+		const savingsRate = realIncome > 0 ? (netIncome / realIncome) * 100 : 0;
+		const expenseRatio = realIncome > 0 ? (realExpense / realIncome) * 100 : 0;
+		const investmentRatio = realIncome > 0 ? (totalInvestment / realIncome) * 100 : 0;
 
 		// Top performing categories
 		const topIncomeCategories = categorySummaryArray.slice(0, 5);
 		const topExpenseCategories = categorySummaryArray
-			.filter(cat => cat.expense > 0)
+			.filter((cat) => cat.expense > 0)
 			.sort((a, b) => b.expense - a.expense)
 			.slice(0, 5);
 
 		// Daily insights
-		const avgDailyIncome = dailySummaryArray.length > 0 ? 
-			dailySummaryArray.reduce((sum, day) => sum + day.realIncome, 0) / dailySummaryArray.length : 0;
-		const avgDailyExpense = dailySummaryArray.length > 0 ? 
-			dailySummaryArray.reduce((sum, day) => sum + day.realExpense, 0) / dailySummaryArray.length : 0;
+		const avgDailyIncome = dailySummaryArray.length > 0 ? dailySummaryArray.reduce((sum, day) => sum + day.realIncome, 0) / dailySummaryArray.length : 0;
+		const avgDailyExpense = dailySummaryArray.length > 0 ? dailySummaryArray.reduce((sum, day) => sum + day.realExpense, 0) / dailySummaryArray.length : 0;
 
 		// Transaction patterns
 		const transactionPatterns = {
-			highestIncomeDay: dailySummaryArray.reduce((max, day) => 
-				day.realIncome > max.realIncome ? day : max, { realIncome: 0, date: null }),
-			highestExpenseDay: dailySummaryArray.reduce((max, day) => 
-				day.realExpense > max.realExpense ? day : max, { realExpense: 0, date: null }),
-			mostActiveDay: dailySummaryArray.reduce((max, day) => 
-				day.transactions.length > max.transactions.length ? day : max, { transactions: [], date: null }),
+			highestIncomeDay: dailySummaryArray.reduce((max, day) => (day.realIncome > max.realIncome ? day : max), {realIncome: 0, date: null}),
+			highestExpenseDay: dailySummaryArray.reduce((max, day) => (day.realExpense > max.realExpense ? day : max), {realExpense: 0, date: null}),
+			mostActiveDay: dailySummaryArray.reduce((max, day) => (day.transactions.length > max.transactions.length ? day : max), {transactions: [], date: null}),
 		};
 
 		// Financial health indicators
@@ -1936,7 +1987,7 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 			expenseRatio: expenseRatio,
 			investmentRatio: investmentRatio,
 			isHealthy: savingsRate >= 20 && expenseRatio <= 80,
-			recommendations: []
+			recommendations: [],
 		};
 
 		// Generate recommendations
@@ -1984,8 +2035,6 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 					accountSummary: accountSummaryArray,
 					actionSummary: actionSummaryArray,
 					dailySummary: dailySummaryArray,
-
-					// All Transactions
 					transactions: transactions.map((tx) => ({
 						transactionId: tx.TransactionId,
 						date: tx.Date,
@@ -1997,9 +2046,10 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 						accountName: tx.AccountName,
 						partyName: tx.PartyFirstName && tx.PartyLastName ? `${tx.PartyFirstName} ${tx.PartyLastName}` : null,
 						description: tx.Description,
+						tagList: tx.TagList,
+						partyDetails: tx.PartyDetails,
+						transferDetails: tx.TransferDetails,
 					})),
-
-					// Statistics
 					statistics: {
 						totalTransactions: transactions.length,
 						uniqueCategories: Object.keys(categorySummary).length,
@@ -2008,8 +2058,6 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 						uniqueAccounts: Object.keys(accountSummary).length,
 						daysWithTransactions: Object.keys(dailySummary).length,
 					},
-
-					// Enhanced Analytics
 					analytics: {
 						savingsRate: savingsRate,
 						expenseRatio: expenseRatio,
