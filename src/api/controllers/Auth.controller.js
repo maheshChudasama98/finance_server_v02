@@ -63,8 +63,6 @@ exports.LoginController = async (payloadBody) => {
 				raw: true,
 			});
 
-			console.log(TargetUser, "############################");
-
 			if (!TargetUser?.UserId) {
 				const User = await UserModel.findOne({
 					where: {
@@ -139,8 +137,6 @@ exports.LoginController = async (payloadBody) => {
 				});
 			});
 
-			console.log(passwordMatch, "############################");
-
 			if (!passwordMatch) {
 				return {
 					httpCode: SUCCESS_CODE,
@@ -158,7 +154,6 @@ exports.LoginController = async (payloadBody) => {
 				UUID: TargetUser.UUID,
 				createdAt: TargetUser.createdAt,
 			};
-			console.log(tokenPassObj, "----------------------------------------------");
 
 			const token = await new Promise((resolve, reject) => {
 				jwt.sign(tokenPassObj, secureKey, {expiresIn: "24h"}, (err, tokenValue) => {
@@ -166,8 +161,6 @@ exports.LoginController = async (payloadBody) => {
 					resolve(tokenValue);
 				});
 			});
-
-			console.log(token, "********************************************");
 
 			return {
 				httpCode: SUCCESS_CODE,

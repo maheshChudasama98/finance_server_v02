@@ -799,20 +799,20 @@ exports.UserProfileUpdateController = async (payloadUser, payloadBody, payloadFi
 		);
 
 		// Update role if provided and user has org access
-		if (RoleId) {
-			await OrgUsersModel.update(
-				{
-					RoleId: RoleId,
-					UpdatedAt: new Date(),
-				},
-				{
-					where: {
-						UserId: UserId,
-						isDeleted: false,
-					},
-				}
-			);
-		}
+		// if (RoleId) {
+		// 	await OrgUsersModel.update(
+		// 		{
+		// 			RoleId: RoleId,
+		// 			UpdatedAt: new Date(),
+		// 		},
+		// 		{
+		// 			where: {
+		// 				UserId: UserId,
+		// 				isDeleted: false,
+		// 			},
+		// 		}
+		// 	);
+		// }
 
 		return {
 			httpCode: SUCCESS_CODE,

@@ -10,7 +10,7 @@ const bodyParser = require("body-parser");
 const fileUpload = require("express-fileupload");
 const path = require("path");
 const {DefaultDatabaseAction, DefaultEmailSet} = require("./src/api/controllers/Basic.controller");
-const { serverRestarted } = require("./src/helpers/Email.helper");
+const {serverRestarted} = require("./src/helpers/Email.helper");
 
 // --------------------------------------------------------------------------
 
@@ -31,9 +31,9 @@ app.use("/public", express.static(path.join(__dirname, "public")));
 require("./src/api/models/index"); //  All Models and Database connection
 require("./src/api/routers/index")(app); // All Router index
 
-DefaultEmailSet();
 setTimeout(async () => {
 	console.log("Executing task...");
+	await DefaultEmailSet();
 	await serverRestarted();
 	// await  DefaultDatabaseAction();
 }, 2 * 60 * 1000);
