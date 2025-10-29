@@ -214,6 +214,29 @@ const serverRestarted = async () => {
 	await emailHelper(emailContent, find?.Subject, find?.Title, process.env.MAIN_USER_EMAIL);
 };
 
+const serverDownRestarted = async () => {
+	const find = await EmailsmsModel.findOne({
+		where: {Slug: "server_down"},
+		raw: true,
+	});
+
+	let decodeContent = decode(find.Content);
+	const data = moment(new Date()).format("DD/MM/YYYY - HH:mm A");
+	const statusCode = 504;
+	const errorMessage = "Gateway Timeout - Server not responding";
+
+	const emailContent = decodeContent
+		.replace(/\{__DownTime__}/g, new Date().toLocaleString())
+		.replace(/\{__ProjectName__}/g, process.env.PROJECT_NAME)
+		.replace(/\{__ServerPort__}/g, process.env.PORT)
+		.replace(/\{__DatabaseName__}/g, process.env.DATABASE_COLLECTION)
+		.replace(/\{__DefaultUrl__}/g, process.env.PROJECT_API_URL)
+		.replace(/\{__StatusCode__}/g, statusCode)
+		.replace(/\{__ErrorMessage__}/g, errorMessage);
+
+	await emailHelper(emailContent, find?.Subject, find?.Title, process.env.MAIN_USER_EMAIL);
+};
+
 const registrationUser = async (firstName, lastName, email, password) => {
 	const find = await EmailsmsModel.findOne({
 		where: {Slug: "registration"},
@@ -238,5 +261,6 @@ module.exports = {
 	emailForgetPasswordSendOTP,
 	emailHelper,
 	serverRestarted,
+	serverDownRestarted,
 	registrationUser,
 };

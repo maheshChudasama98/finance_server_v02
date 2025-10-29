@@ -1,6 +1,8 @@
 const {ENGLISH} = require("../constants/messages");
 const cron = require("node-cron");
+const axios = require("axios");
 const {createTransactionStatement, createStatementPDF} = require("../../helpers/PDF.helper");
+const {serverDownRestarted} = require("../../helpers/Email.helper");
 
 // ------------ || Include all routers file over here  || ------------ //
 
@@ -33,6 +35,27 @@ module.exports = (app) => {
 
 		if (tomorrow.getDate() === 1) {
 			createTransactionStatement();
+		}
+	});
+
+	const URL = "https://dhanyug.onrender.com/";
+
+	cron.schedule("*/5 * * * *", async () => {
+		console.log("🕒 Cron started:", new Date().toLocaleString());
+
+		try {
+			const response = await axios.get(URL, {
+				timeout: 2 * 60 * 1000,
+			});
+
+			console.log("✅ Keep-alive ping successful:", response.status, URL);
+		} catch (err) {
+			if (err.code === "ECONNABORTED") {
+				console.error("⏰ Request timed out after 2 minutes");
+			} else {
+				await serverDownRestarted();
+				console.error("❌ Keep-alive ping failed:", err.message);
+			}
 		}
 	});
 
