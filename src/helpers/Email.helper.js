@@ -181,7 +181,7 @@ const emailHelper = async (content, subject, title, to, attachments, ...other) =
 
 		const transporter = nodemailer.createTransport({
 			host: "smtp.mailtrap.io",
-			port: 587,
+			port: 2525,
 			auth: {
 				user: process.env.EMAIL_USER,
 				pass: process.env.EMAIL_PASSWORD,
