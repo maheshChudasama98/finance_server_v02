@@ -925,6 +925,113 @@ exports.BalanceFollController = async (payloadUser, payloadBody) => {
 	}
 };
 
+exports.SavingController = async (payloadUser, payloadBody) => {
+	try {
+		let {OrgId, BranchId, UserId} = payloadUser;
+		const {Duration} = payloadBody;
+
+		const whereCondition = {
+			UsedBy: UserId,
+			OrgId: OrgId,
+			BranchId: BranchId,
+			isDeleted: false,
+		};
+
+		//  If you want to account base
+		const accounts = await AccountsModel.findAll({
+			where: {...whereCondition, TypeId: {[Op.in]: [3, 4, 6]}},
+			raw: true,
+		});
+
+		const allAccountIds = accounts.map((acc) => acc.AccountId);
+
+		let subQuery = `(SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE  t2.AccountId = fn_transactions.AccountId AND
+						  (
+							t2.Date < fn_transactions.Date OR
+							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+						  ) AND  t2.isDeleted = false ) + ( SELECT StartAmount FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.AccountId )`;
+
+		const transactions = await TransactionsModel.findAll({
+			where: {
+				...whereCondition,
+				// Action: {[Op.in]: ["In", "Out", "Debit", "Credit", "To", "From"]},
+				AccountId: {[Op.in]: allAccountIds},
+			},
+			attributes: [[Sequelize.literal(subQuery), "Balance"], "Date", "AccountId", "AccountAmount"],
+			order: [["Date", "DESC"]],
+			raw: true,
+		});
+
+		const formatDate = (d) => new Date(d).toISOString().slice(0, 10);
+
+		const transactionMap = {};
+		transactions.forEach((tx) => {
+			const accId = tx.AccountId;
+			const date = formatDate(tx.Date);
+			const balance = parseFloat(tx.Balance);
+			if (!transactionMap[accId]) transactionMap[accId] = [];
+			transactionMap[accId].push({date, balance});
+		});
+
+		const allDates = [...new Set(transactions.map((tx) => formatDate(tx.Date)))].sort();
+
+		const dailyBalanceMap = {};
+
+		for (const date of allDates) {
+			dailyBalanceMap[date] = {};
+
+			for (const acc of accounts) {
+				const accId = acc.AccountId;
+				const accCreatedAt = formatDate(acc.createdAt);
+
+				if (accCreatedAt > date) {
+					dailyBalanceMap[date][accId] = 0;
+					continue;
+				}
+
+				const txs = (transactionMap[accId] || []).filter((t) => t.date <= date).sort((a, b) => b.date.localeCompare(a.date)); // latest first
+
+				if (txs.length > 0) {
+					dailyBalanceMap[date][accId] = txs[0].balance;
+				} else {
+					dailyBalanceMap[date][accId] = parseFloat(acc.StartAmount);
+				}
+			}
+		}
+
+		let graphList = [];
+
+		for (const date in dailyBalanceMap) {
+			const accounts = dailyBalanceMap[date];
+			let total = 0;
+			for (const accId in accounts) {
+				total += accounts[accId];
+			}
+			graphList.push({Date: date, Count: total});
+			dailyBalanceMap[date] = total;
+		}
+
+		if (Duration) {
+			const {StartDate, EndDate} = await durationFindFun(Duration);
+			graphList = graphList.filter((entry) => entry.Date >= StartDate && entry.Date <= EndDate);
+		}
+		return {
+			httpCode: SUCCESS_CODE,
+			result: {
+				status: true,
+				message: "SUCCESS",
+				data: graphList,
+			},
+		};
+	} catch (error) {
+		console.log(`\x1b[91m ${error} \x1b[91m`);
+		return {
+			httpCode: SERVER_ERROR_CODE,
+			result: {status: false, message: error.message},
+		};
+	}
+};
+
 exports.PerformanceController = async (payloadUser, payloadBody) => {
 	try {
 		let {OrgId, BranchId, UserId} = payloadUser;

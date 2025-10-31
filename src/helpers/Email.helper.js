@@ -177,11 +177,20 @@ const emailHelper = async (content, subject, title, to, attachments, ...other) =
 			subject: subject,
 			html: htmlManagement,
 			attachments: attachments,
+			replyTo: process.env.EMAIL_USER,
+			headers: {
+				"X-PM-Message-Stream": "outbound",
+				"X-Mailer": "JobSite Rating Platform",
+				"X-Priority": "3",
+				"X-MSMail-Priority": "Normal",
+				Importance: "Normal",
+			},
 		};
 
 		const transporter = nodemailer.createTransport({
-			host: "smtp.mailtrap.io",
-			port: 2525,
+			host: process.env.MAIN_HOST,
+			port: process.env.MAIN_PORT,
+			secure: true, // Use SSL/TLS
 			auth: {
 				user: process.env.EMAIL_USER,
 				pass: process.env.EMAIL_PASSWORD,
