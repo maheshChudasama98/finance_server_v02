@@ -838,11 +838,11 @@ exports.BalanceFollController = async (payloadUser, payloadBody) => {
 
 		const allAccountIds = accounts.map((acc) => acc.AccountId);
 
-		let subQuery = `(SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE  t2.AccountId = fn_transactions.AccountId AND
+		let subQuery = `(SELECT SUM(FT.AccountAmount) FROM fn_transactions FT WHERE  FT.AccountId = fn_transactions.AccountId AND
 						  (
-							t2.Date < fn_transactions.Date OR
-							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
-						  ) AND  t2.isDeleted = false ) + ( SELECT StartAmount FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.AccountId )`;
+							FT.Date < fn_transactions.Date OR
+							(FT.Date = fn_transactions.Date AND FT.TransactionId <= fn_transactions.TransactionId)
+						  ) AND  FT.isDeleted = false ) + ( SELECT StartAmount FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.AccountId )`;
 
 		const transactions = await TransactionsModel.findAll({
 			where: {
@@ -854,6 +854,8 @@ exports.BalanceFollController = async (payloadUser, payloadBody) => {
 			order: [["Date", "DESC"]],
 			raw: true,
 		});
+
+		console.log('transactions', transactions)
 
 		const formatDate = (d) => new Date(d).toISOString().slice(0, 10);
 
