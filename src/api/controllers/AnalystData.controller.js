@@ -255,7 +255,7 @@ exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 			whereCondition.SubCategoryId = SubCategoryId;
 		}
 
-		const {StartDate, EndDate} = await durationFindFun("All");
+		const {StartDate, EndDate} = await durationFindFun("This_Year");
 		whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
 		let timeDurationFn;
 
@@ -338,6 +338,134 @@ exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 		};
 	}
 };
+
+// exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
+// 	try {
+// 		let {OrgId, BranchId, UserId} = payloadUser;
+// 		const {AccountId, PartyId, CategoryId, SubCategoryId, Duration} = payloadBody;
+
+// 		if (!Duration) {
+// 			return {
+// 				httpCode: BAD_REQUEST_CODE,
+// 				result: {
+// 					status: false,
+// 					message: "BAD_REQUEST_CODE",
+// 				},
+// 			};
+// 		}
+
+// 		const whereCondition = {
+// 			UsedBy: UserId,
+// 			OrgId: OrgId,
+// 			BranchId: BranchId,
+// 			isDeleted: false,
+// 		};
+
+// 		if (AccountId) {
+// 			whereCondition.AccountId = AccountId;
+// 		}
+
+// 		if (PartyId) {
+// 			whereCondition.PartyId = PartyId;
+// 		}
+
+// 		if (CategoryId) {
+// 			whereCondition.CategoryId = CategoryId;
+// 		}
+
+// 		if (SubCategoryId) {
+// 			whereCondition.SubCategoryId = SubCategoryId;
+// 		}
+
+// 		const {StartDate, EndDate} = await durationFindFun("All");
+// 		whereCondition.Date = {[Op.between]: [StartDate, EndDate]};
+
+// 		let timeDurationFn;
+// 		let groupByFn;
+
+// 		if (Duration === "DATE") {
+// 			timeDurationFn = fn("DATE", col("Date"));
+// 			groupByFn = fn("DATE", col("Date"));
+// 		} else if (Duration === "WEEK") {
+// 			timeDurationFn = fn("DATE_FORMAT", col("Date"), "%Y Week-%u");
+// 			groupByFn = fn("YEARWEEK", col("Date"));
+// 		} else if (Duration === "MONTH") {
+// 			timeDurationFn = fn("DATE_FORMAT", col("Date"), "%b %y");
+// 			groupByFn = fn("DATE_FORMAT", col("Date"), "%Y-%m");
+// 		} else if (Duration === "YEAR") {
+// 			timeDurationFn = fn("YEAR", col("Date"));
+// 			groupByFn = fn("YEAR", col("Date"));
+// 		}
+
+// 		const results = await TransactionsModel.findAll({
+// 			attributes: [
+// 				[timeDurationFn, "duration"],
+// 				[fn("SUM", literal("CASE WHEN Action = 'In' THEN Amount ELSE 0 END")), "totalIn"],
+// 				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment') THEN Amount ELSE 0 END")), "totalOut"],
+// 				[fn("SUM", literal("CASE WHEN Action = 'Investment' THEN Amount ELSE 0 END")), "totalInvestment"],
+// 				[fn("SUM", literal("CASE WHEN Action IN ('Debit', 'Payer') THEN Amount ELSE 0 END")), "totalDebit"],
+// 				[fn("SUM", literal("CASE WHEN Action IN ('Credit', 'Buyer') THEN Amount ELSE 0 END")), "totalCredit"],
+// 				[fn("SUM", literal("CASE WHEN Action IN ('Return') THEN Amount ELSE 0 END")), "totalReturn"],
+// 				[fn("SUM", literal("CASE WHEN Action IN ('Refund') THEN Amount ELSE 0 END")), "totalRefund"],
+// 				[fn("SUM", literal("CASE WHEN Action IN ('Out', 'Installment', 'Refund', 'Payer') THEN Amount ELSE 0 END")), "totalExpense"],
+// 			],
+// 			where: whereCondition,
+// 			group: [groupByFn],
+// 			order: [[groupByFn, "ASC"]],
+// 			raw: true,
+// 		});
+
+// 		let cumulativeTotalIn = 0;
+// 		let cumulativeTotalOut = 0;
+// 		let cumulativeTotalInvestment = 0;
+// 		let cumulativeTotalCredit = 0;
+// 		let cumulativeTotalDebit = 0;
+// 		let cumulativeTotalRefund = 0;
+// 		let cumulativeTotalReturn = 0;
+// 		let cumulativeTotalExpense = 0;
+
+// 		const updatedResults = results.map((row, index) => {
+// 			cumulativeTotalIn += parseFloat(row.totalIn);
+// 			cumulativeTotalOut += parseFloat(row.totalOut);
+// 			cumulativeTotalInvestment += parseFloat(row.totalInvestment);
+// 			cumulativeTotalCredit += parseFloat(row.totalCredit);
+// 			cumulativeTotalDebit += parseFloat(row.totalDebit);
+// 			cumulativeTotalReturn += parseFloat(row.totalReturn);
+// 			cumulativeTotalRefund += parseFloat(row.totalRefund);
+// 			cumulativeTotalExpense += parseFloat(row.totalExpense);
+
+// 			return {
+// 				duration: row.duration,
+// 				totalIn: cumulativeTotalIn.toFixed(2),
+// 				totalOut: cumulativeTotalOut.toFixed(2),
+// 				totalInvestment: cumulativeTotalInvestment.toFixed(2),
+// 				totalCredit: cumulativeTotalCredit.toFixed(2),
+// 				totalDebit: cumulativeTotalDebit.toFixed(2),
+// 				totalReturn: cumulativeTotalReturn.toFixed(2),
+// 				totalRefund: cumulativeTotalRefund.toFixed(2),
+// 				totalExpense: cumulativeTotalExpense.toFixed(2),
+// 			};
+// 		});
+
+// 		return {
+// 			httpCode: SUCCESS_CODE,
+// 			result: {
+// 				status: true,
+// 				message: "SUCCESS",
+// 				data: {
+// 					list: results,
+// 					increment: updatedResults,
+// 				},
+// 			},
+// 		};
+// 	} catch (error) {
+// 		console.log(`\x1b[91m ${error} \x1b[91m`);
+// 		return {
+// 			httpCode: SERVER_ERROR_CODE,
+// 			result: {status: false, message: error.message},
+// 		};
+// 	}
+// };
 
 exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 	try {
@@ -855,7 +983,7 @@ exports.BalanceFollController = async (payloadUser, payloadBody) => {
 			raw: true,
 		});
 
-		console.log('transactions', transactions)
+		// console.log("transactions", transactions);
 
 		const formatDate = (d) => new Date(d).toISOString().slice(0, 10);
 
