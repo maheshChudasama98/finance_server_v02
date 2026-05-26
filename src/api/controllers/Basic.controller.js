@@ -43,7 +43,7 @@ exports.UserBasedDefaultCategory = async (UserId, OrgId, BranchId) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 	}
 };
 
@@ -220,7 +220,7 @@ exports.DefaultDatabaseAction = async () => {
 			})
 				.then(() => {})
 				.catch((error) => {
-					console.log(`\x1b[91m ${error} \x1b[91m`);
+					console.error(`\x1b[91m ${error} \x1b[91m`);
 				});
 		}
 		console.log("Default Org, Branch, Role, Modules and User Created Successfully");

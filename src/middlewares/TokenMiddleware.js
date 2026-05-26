@@ -55,7 +55,7 @@ module.exports = async (req, res, next) => {
 			res.status(TOKEN_NOT_PROVIDED_CODE).json({status: false, message: "No token provided!"});
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		res.status(TOKEN_NOT_PROVIDED_CODE).json({status: false, message: error.message});
 	}
 };

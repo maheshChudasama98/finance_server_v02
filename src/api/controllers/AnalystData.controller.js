@@ -209,7 +209,7 @@ exports.DashboardController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -331,7 +331,7 @@ exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -459,7 +459,7 @@ exports.BalanceOverviewController = async (payloadUser, payloadBody) => {
 // 			},
 // 		};
 // 	} catch (error) {
-// 		console.log(`\x1b[91m ${error} \x1b[91m`);
+// 		console.error(`\x1b[91m ${error} \x1b[91m`);
 // 		return {
 // 			httpCode: SERVER_ERROR_CODE,
 // 			result: {status: false, message: error.message},
@@ -587,7 +587,7 @@ exports.TopCategoriesController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -707,7 +707,7 @@ exports.TopSubCategoriesController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -938,7 +938,7 @@ exports.RecodeListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -982,8 +982,6 @@ exports.BalanceFollController = async (payloadUser, payloadBody) => {
 			order: [["Date", "DESC"]],
 			raw: true,
 		});
-
-		// console.log("transactions", transactions);
 
 		const formatDate = (d) => new Date(d).toISOString().slice(0, 10);
 
@@ -1047,7 +1045,7 @@ exports.BalanceFollController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1154,7 +1152,7 @@ exports.SavingController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1427,7 +1425,7 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1732,7 +1730,7 @@ exports.MonthlyReportController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -2310,7 +2308,7 @@ exports.MonthlyDetailedSummaryController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -2417,7 +2415,7 @@ exports.AccountOverviewController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -2527,7 +2525,7 @@ exports.AccountDetailsController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},

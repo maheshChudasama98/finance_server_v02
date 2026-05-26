@@ -1,8 +1,8 @@
 module.exports = {
 	DevelopMood: true,
-	ProjectName: "Smart Analyst FV2",
-	resetLink: "http://www.smartsdn.in:8000/login",
-	loginLink: "http://www.smartsdn.in:8000/login",
+	ProjectName: "DhanYug FV2",
+	resetLink: "https://dhanyug.netlify.app/login",
+	loginLink: "https://dhanyug.netlify.app/login",
 
 	superAdminRoleId: 1,
 

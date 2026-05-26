@@ -224,7 +224,7 @@ exports.UserInfoController = async (payloadUser) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -236,8 +236,6 @@ exports.UserListController = async (payloadUser, payloadBody) => {
 	try {
 		const {OrgId, BranchId, UserId, RoleId} = payloadUser;
 		const {Action, Page, PageSize, FilterBy, SearchKey} = payloadBody;
-
-		console.log(payloadUser, "payloadUser");
 
 		if (Action) {
 			if (!Page || !PageSize) {
@@ -337,7 +335,7 @@ exports.UserListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -391,7 +389,7 @@ exports.UserModifyController = async (payloadUser, payloadBody, payloadFile) => 
 							where: {
 								OrgUserId: findBranchInUser?.OrgUserId,
 							},
-						}
+						},
 					);
 
 					return {
@@ -482,7 +480,7 @@ exports.UserModifyController = async (payloadUser, payloadBody, payloadFile) => 
 							isDeleted: false,
 							UserId: EditUserId,
 						},
-					}
+					},
 				);
 
 				await OrgUsersModel.update(
@@ -493,7 +491,7 @@ exports.UserModifyController = async (payloadUser, payloadBody, payloadFile) => 
 							BranchId: BranchId,
 							UserId: EditUserId,
 						},
-					}
+					},
 				);
 
 				return {
@@ -503,7 +501,7 @@ exports.UserModifyController = async (payloadUser, payloadBody, payloadFile) => 
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -516,7 +514,6 @@ exports.UserModifyController = async (payloadUser, payloadBody, payloadFile) => 
 
 exports.UserRemoveController = async (payloadUser, payloadQuery) => {
 	try {
-		console.log(payloadUser, "payloadUser ");
 		const {OrgId, BranchId, UserId, RoleId} = payloadUser;
 		const {RemoveId} = payloadQuery;
 
@@ -558,7 +555,7 @@ exports.UserRemoveController = async (payloadUser, payloadQuery) => {
 					BranchId: BranchId,
 					UserId: RemoveId,
 				},
-			}
+			},
 		);
 		// }
 		return {
@@ -569,7 +566,7 @@ exports.UserRemoveController = async (payloadUser, payloadQuery) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -594,7 +591,7 @@ exports.DefaultBrachController = async (payloadUser, payloadQuery) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -624,7 +621,7 @@ exports.SettingGetController = async (payloadUser) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -662,7 +659,7 @@ exports.SettingModifyController = async (payloadUser, payloadBody) => {
 				DefaultDateFormat,
 				DefaultCurrency,
 				AmountHide: AmountHide ? 1 : 0,
-				ThemeMode: ThemeMode || 'light',
+				ThemeMode: ThemeMode || "light",
 				ThemePrimary: ThemePrimary || null,
 				UsedBy: UserId,
 			});
@@ -679,14 +676,14 @@ exports.SettingModifyController = async (payloadUser, payloadBody) => {
 					DefaultDateFormat,
 					DefaultCurrency,
 					AmountHide: AmountHide ? 1 : 0,
-					ThemeMode: ThemeMode || target.ThemeMode || 'light',
-					ThemePrimary: typeof ThemePrimary !== 'undefined' ? ThemePrimary : target.ThemePrimary,
+					ThemeMode: ThemeMode || target.ThemeMode || "light",
+					ThemePrimary: typeof ThemePrimary !== "undefined" ? ThemePrimary : target.ThemePrimary,
 				},
 				{
 					where: {
 						UsedBy: UserId,
 					},
-				}
+				},
 			);
 
 			return {
@@ -695,7 +692,7 @@ exports.SettingModifyController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -787,7 +784,7 @@ exports.UserProfileUpdateController = async (payloadUser, payloadBody, payloadFi
 				LastName: LastName.trim(),
 				Email: UserEmail.trim(),
 				Mobile: UserNumber || null,
-				Language: Language || 'EN',
+				Language: Language || "EN",
 				ImgPath: imagePath,
 				UpdatedAt: new Date(),
 			},
@@ -795,7 +792,7 @@ exports.UserProfileUpdateController = async (payloadUser, payloadBody, payloadFi
 				where: {
 					UserId: UserId,
 				},
-			}
+			},
 		);
 
 		// Update role if provided and user has org access
@@ -822,7 +819,7 @@ exports.UserProfileUpdateController = async (payloadUser, payloadBody, payloadFi
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m UserProfileUpdateController Error: ${error} \x1b[91m`);
+		console.error(`\x1b[91m UserProfileUpdateController Error: ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {

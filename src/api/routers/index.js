@@ -39,34 +39,4 @@ module.exports = (app) => {
 	});
 
 	const URL = "https://dhanyug.onrender.com/";
-
-	// cron.schedule("*/5 * * * *", async () => {
-	// 	console.log("🕒 Cron started:", new Date().toLocaleString());
-
-	// 	try {
-	// 		const response = await axios.get(URL, {
-	// 			timeout: 2 * 60 * 1000,
-	// 		});
-
-	// 		console.log("✅ Keep-alive ping successful:", response.status, URL);
-	// 	} catch (err) {
-	// 		if (err.code === "ECONNABORTED") {
-	// 			console.error("⏰ Request timed out after 2 minutes");
-	// 		} else {
-	// 			await serverDownRestarted();
-	// 			console.error("❌ Keep-alive ping failed:", err.message);
-	// 		}
-	// 	}
-	// });
-
-	// app.get("/download", async (req, res) => {
-	// 	try {
-	// 		console.log("datadatadata");
-	// 		const data = await createStatementPDF(1, 1, 2);
-	// 		console.log(data, "datadatadata");
-	// 		return res.status(200).send(ENGLISH.DEFAULT_PATH);
-	// 	} catch (error) {
-	// 		return res.status(500).send({status: false, message: error.message});
-	// 	}
-	//});
 };

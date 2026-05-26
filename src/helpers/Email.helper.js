@@ -48,7 +48,7 @@ const emailSendHelper = async (emailMessage) => {
 		const info = await transporter.sendMail(emailMessage);
 		return info.response;
 	} catch (error) {
-		console.log(`At email send error :- ${error}`);
+		console.error(`At email send error :- ${error}`);
 		throw error;
 	}
 };
@@ -200,7 +200,7 @@ const emailHelper = async (content, subject, title, to, attachments, ...other) =
 		const info = transporter.sendMail(emailMessage);
 		return info.response;
 	} catch (error) {
-		console.log(`At email send error :- ${error}`);
+		console.error(`At email send error :- ${error}`);
 		throw error;
 	}
 };

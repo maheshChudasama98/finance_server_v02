@@ -95,7 +95,7 @@ exports.TopicModifyController = async (payloadUser, payloadBody) => {
         };
 
     } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
+        console.error(`\x1b[91m ${error} \x1b[91m`);
         return ({
             httpCode: SERVER_ERROR_CODE,
             result: { status: false, message: error.message }
@@ -155,7 +155,7 @@ exports.TopicRemoveController = async (payloadUser, payloadQuery) => {
         });
 
     } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
+        console.error(`\x1b[91m ${error} \x1b[91m`);
         return ({
             httpCode: SERVER_ERROR_CODE,
             result: { status: false, message: error.message }
@@ -219,7 +219,7 @@ exports.TopicListController = async (payloadUser, payloadBody) => {
         });
 
     } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
+        console.error(`\x1b[91m ${error} \x1b[91m`);
         return ({
             httpCode: SERVER_ERROR_CODE,
             result: { status: false, message: error.message }
@@ -283,7 +283,7 @@ exports.TopicDragSortingController = async (payloadUser, payloadBody) => {
         });
 
     } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
+        console.error(`\x1b[91m ${error} \x1b[91m`);
         return ({
             httpCode: SERVER_ERROR_CODE,
             result: { status: false, message: error.message }
@@ -378,7 +378,7 @@ exports.TaskModifyController = async (payloadUser, payloadBody) => {
         };
 
     } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
+        console.error(`\x1b[91m ${error} \x1b[91m`);
         return ({
             httpCode: SERVER_ERROR_CODE,
             result: { status: false, message: error.message }
@@ -421,7 +421,7 @@ exports.TaskListController = async (payloadUser, payloadBody) => {
         });
 
     } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
+        console.error(`\x1b[91m ${error} \x1b[91m`);
         return ({
             httpCode: SERVER_ERROR_CODE,
             result: { status: false, message: error.message }
@@ -455,7 +455,7 @@ exports.TaskRemoveController = async (payloadUser, payloadBody) => {
         });
 
     } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
+        console.error(`\x1b[91m ${error} \x1b[91m`);
         return ({
             httpCode: SERVER_ERROR_CODE,
             result: { status: false, message: error.message }
@@ -523,7 +523,7 @@ exports.TaskDragSortingController = async (payloadUser, payloadBody) => {
         });
 
     } catch (error) {
-        console.log(`\x1b[91m ${error} \x1b[91m`);
+        console.error(`\x1b[91m ${error} \x1b[91m`);
         return ({
             httpCode: SERVER_ERROR_CODE,
             result: { status: false, message: error.message }

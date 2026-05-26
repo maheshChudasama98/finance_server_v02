@@ -172,7 +172,7 @@ exports.LoginController = async (payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -253,7 +253,7 @@ exports.SignupController = async (payloadBody) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -302,7 +302,7 @@ exports.ForgotPasswordController = async (payloadBody) => {
 						resolve(true);
 					})
 					.catch((error) => {
-						console.log(`\x1b[91m ${error} \x1b[91m`);
+						console.error(`\x1b[91m ${error} \x1b[91m`);
 						if (error) reject(error);
 					});
 			});
@@ -325,7 +325,7 @@ exports.ForgotPasswordController = async (payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -374,7 +374,7 @@ exports.ResetPasswordController = async (payloadBody) => {
 							resolve(true);
 						})
 						.catch((error) => {
-							console.log(`\x1b[91m ${error} \x1b[91m`);
+							console.error(`\x1b[91m ${error} \x1b[91m`);
 							if (error) reject(error);
 						});
 				});
@@ -423,7 +423,7 @@ exports.ResetPasswordController = async (payloadBody) => {
 						resolve(true);
 					})
 					.catch((error) => {
-						console.log(`\x1b[91m ${error} \x1b[91m`);
+						console.error(`\x1b[91m ${error} \x1b[91m`);
 						if (error) reject(error);
 					});
 			});
@@ -441,7 +441,7 @@ exports.ResetPasswordController = async (payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -527,7 +527,7 @@ exports.UserRegistrationController = async (payloadBody) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},

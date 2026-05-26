@@ -283,7 +283,7 @@ exports.CategoriesFetchListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -365,7 +365,7 @@ exports.CategoryModifyController = async (payloadUser, payloadBody) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -429,7 +429,7 @@ exports.CategoryActionController = async (payloadUser, payloadQuery) => {
 			result: {status: true, message: "SUCCESS"},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -491,7 +491,7 @@ exports.SelectedCategoryController = async (payloadUser, payloadBody) => {
 			result: {status: true, message: "SUCCESS", data: findRecodes},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -607,7 +607,7 @@ exports.SubCategoriesFetchListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -688,7 +688,7 @@ exports.SubCategoryModifyController = async (payloadUser, payloadBody) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -750,7 +750,7 @@ exports.SubCategoryActionController = async (payloadUser, payloadQuery) => {
 			result: {status: true, message: "SUCCESS"},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -812,7 +812,7 @@ exports.SelectedSubCategoryController = async (payloadUser, payloadBody) => {
 			result: {status: true, message: "SUCCESS", data: findRecodes},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -946,7 +946,7 @@ exports.LabelsFetchListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -1024,7 +1024,7 @@ exports.LabelModifyController = async (payloadUser, payloadBody) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1087,7 +1087,7 @@ exports.LabelActionController = async (payloadUser, payloadQuery) => {
 			result: {status: true, message: "SUCCESS"},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1151,7 +1151,7 @@ exports.SelectedLabelController = async (payloadUser, payloadBody) => {
 			result: {status: true, message: "SUCCESS", data: findRecodes},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1307,7 +1307,7 @@ exports.AccountsFetchListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -1399,7 +1399,7 @@ exports.AccountModifyController = async (payloadUser, payloadBody) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1465,7 +1465,7 @@ exports.AccountActionController = async (payloadUser, payloadQuery) => {
 			result: {status: true, message: "SUCCESS"},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1527,7 +1527,7 @@ exports.SelectedAccountController = async (payloadUser, payloadBody) => {
 			result: {status: true, message: "SUCCESS", data: findRecodes},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1681,7 +1681,7 @@ exports.PartiesFetchListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -1782,7 +1782,7 @@ exports.PartyModifyController = async (payloadUser, payloadBody) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1845,7 +1845,7 @@ exports.PartyActionController = async (payloadUser, payloadQuery) => {
 			result: {status: true, message: "SUCCESS"},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1907,7 +1907,7 @@ exports.SelectedPartyController = async (payloadUser, payloadBody) => {
 			result: {status: true, message: "SUCCESS", data: findRecodes},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -2054,7 +2054,7 @@ exports.LongsFetchListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -2220,7 +2220,7 @@ exports.LongsModifyController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -2283,7 +2283,7 @@ exports.LongsActionController = async (payloadUser, payloadQuery) => {
 			result: {status: true, message: "SUCCESS"},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -2345,7 +2345,7 @@ exports.SelectedLongsController = async (payloadUser, payloadBody) => {
 			result: {status: true, message: "SUCCESS", data: findRecodes},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},

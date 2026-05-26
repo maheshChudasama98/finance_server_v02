@@ -385,7 +385,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -699,7 +699,7 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -842,7 +842,7 @@ exports.TransactionFetchDataController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -919,7 +919,7 @@ exports.TransactionRemoveController = async (payloadUser, payloadQuery) => {
 			result: {status: true, message: "SUCCESS"},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},

@@ -161,7 +161,7 @@ exports.OrgModifyController = async (payloadUser, payloadBody, payloadFile) => {
 						Description: Description,
 						ImgPath: imagePath,
 					},
-					{where: {OrgId: OrgId}}
+					{where: {OrgId: OrgId}},
 				);
 
 				return {
@@ -171,7 +171,7 @@ exports.OrgModifyController = async (payloadUser, payloadBody, payloadFile) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -182,8 +182,6 @@ exports.OrgModifyController = async (payloadUser, payloadBody, payloadFile) => {
 exports.OrgListController = async (payloadUser, payloadBody) => {
 	try {
 		const {Action, Page, PageSize, FilterBy} = payloadBody;
-
-		console.log(payloadUser, "payloadBody");
 
 		if (Action) {
 			if (!Page || !PageSize) {
@@ -291,7 +289,7 @@ exports.OrgListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -312,7 +310,7 @@ exports.OrgRemoveController = async (payloadUser, payloadQuery) => {
 			},
 			{
 				where: {OrgId: OrgId},
-			}
+			},
 		);
 
 		return {
@@ -323,7 +321,7 @@ exports.OrgRemoveController = async (payloadUser, payloadQuery) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -354,7 +352,7 @@ exports.OrgActiveController = async (payloadUser, payloadQuery) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -450,7 +448,7 @@ exports.BranchModifyController = async (payloadUser, payloadBody, payloadFile) =
 						Phone,
 						Email,
 					},
-					{where: {BranchId: BranchId}}
+					{where: {BranchId: BranchId}},
 				);
 
 				return {
@@ -463,7 +461,7 @@ exports.BranchModifyController = async (payloadUser, payloadBody, payloadFile) =
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -590,7 +588,7 @@ exports.BranchListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -611,7 +609,7 @@ exports.BranchRemoveController = async (payloadUser, payloadQuery) => {
 			},
 			{
 				where: {BranchId: BranchId},
-			}
+			},
 		);
 
 		return {
@@ -622,7 +620,7 @@ exports.BranchRemoveController = async (payloadUser, payloadQuery) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -653,7 +651,7 @@ exports.BranchActiveController = async (payloadUser, payloadQuery) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -744,7 +742,7 @@ exports.ModuleModifyController = async (payloadUser, payloadBody) => {
 						Icon: Icon || null,
 						ParentNoteId: ParentNoteId || null,
 					},
-					{where: {ModulesId: ModulesId}}
+					{where: {ModulesId: ModulesId}},
 				);
 
 				return {
@@ -757,7 +755,7 @@ exports.ModuleModifyController = async (payloadUser, payloadBody) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -840,7 +838,7 @@ exports.ModuleListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -861,7 +859,7 @@ exports.ModuleRemoveController = async (payloadUser, payloadQuery) => {
 			},
 			{
 				where: {ModulesId: ModulesId},
-			}
+			},
 		);
 
 		return {
@@ -872,7 +870,7 @@ exports.ModuleRemoveController = async (payloadUser, payloadQuery) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -903,7 +901,7 @@ exports.ModuleActiveController = async (payloadUser, payloadQuery) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -988,7 +986,7 @@ exports.RoleModifyController = async (payloadUser, payloadBody) => {
 						RoleName: RoleName?.trim() || null,
 						Description: Description,
 					},
-					{where: {RoleId: RoleId}}
+					{where: {RoleId: RoleId}},
 				);
 
 				return {
@@ -1001,7 +999,7 @@ exports.RoleModifyController = async (payloadUser, payloadBody) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -1089,7 +1087,7 @@ exports.RoleListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -1110,7 +1108,7 @@ exports.RoleRemoveController = async (payloadUser, payloadQuery) => {
 			},
 			{
 				where: {RoleId: RoleId},
-			}
+			},
 		);
 
 		return {
@@ -1121,7 +1119,7 @@ exports.RoleRemoveController = async (payloadUser, payloadQuery) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -1152,7 +1150,7 @@ exports.RoleActiveController = async (payloadUser, payloadQuery) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -1261,7 +1259,7 @@ exports.PermissionController = async (payloadUser, payloadQuery) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -1304,7 +1302,7 @@ exports.PermissionModifyController = async (payloadUser, payloadBody) => {
 					},
 					{
 						where: {PermissionId: element?.PermissionId},
-					}
+					},
 				);
 			}
 		}
@@ -1317,7 +1315,7 @@ exports.PermissionModifyController = async (payloadUser, payloadBody) => {
 			},
 		};
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {
@@ -1380,7 +1378,7 @@ exports.EmailModifyController = async (payloadUser, payloadBody) => {
 						Subject: Subject?.trim() || null,
 						Content: Content,
 					},
-					{where: {ContentId: ContentId}}
+					{where: {ContentId: ContentId}},
 				);
 
 				return {
@@ -1390,7 +1388,7 @@ exports.EmailModifyController = async (payloadUser, payloadBody) => {
 			}
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {status: false, message: error.message},
@@ -1463,7 +1461,7 @@ exports.EmailListController = async (payloadUser, payloadBody) => {
 			};
 		}
 	} catch (error) {
-		console.log(`\x1b[91m ${error} \x1b[91m`);
+		console.error(`\x1b[91m ${error} \x1b[91m`);
 		return {
 			httpCode: SERVER_ERROR_CODE,
 			result: {

@@ -284,12 +284,6 @@ async function createTransactionStatement() {
 				dateSummary[txDate] += amount;
 			});
 
-			// console.log("Category Summary:", categorySummary);
-			// console.log("SubCategory Summary:", subCategorySummary);
-			// console.log("Party Summary:", partySummary);
-			// console.log("Account Summary:", accountSummary);
-			// console.log("Date Summary:", dateSummary);
-
 			// const groupedByDate = fetchList.reduce((acc, item) => {
 			// 	let dateGroup = acc.find((group) => group.date === item.Date);
 
@@ -1015,11 +1009,9 @@ async function createStatementPDF(OrgId, BranchId, UserId, Month) {
 			},
 		]);
 
-		console.log(mailValue, "mailValue mailValue");
-
 		return mailValue;
 	} catch (error) {
-		console.log(`At email send error :- ${error}`);
+		console.error(`At email send error :- ${error}`);
 		throw error;
 	}
 }
