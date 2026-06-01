@@ -819,6 +819,7 @@ exports.RecodeListController = async (payloadUser, payloadBody) => {
 				"AccountId",
 				"TransferToAccountId",
 				"AccountAmount",
+				"Description",
 				[
 					Sequelize.literal(`
 					  CASE 
@@ -826,6 +827,7 @@ exports.RecodeListController = async (payloadUser, payloadBody) => {
 						WHEN Action IN ('Credit', 'Debit') THEN CONCAT(Action, ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
 						WHEN Action IN ('From', 'To') THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
 						WHEN Action = 'Investment' THEN CONCAT('Invest to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+						WHEN Action = 'Installment' THEN CONCAT('EMI to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
 						ELSE ''
 					  END
 					`),
@@ -1253,7 +1255,7 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 			attributes: [
 				[timeDurationFn, "duration"],
 				[fn("SUM", literal(`CASE WHEN Action = 'In' OR  Action = 'To' THEN Amount ELSE 0 END`)), "totalIn"],
-				[fn("SUM", literal(`CASE WHEN Action = 'Out' OR  Action = 'From' OR Action = 'Investment' THEN Amount ELSE 0 END`)), "totalOut"],
+				[fn("SUM", literal(`CASE WHEN Action = 'Out' OR  Action = 'From' OR Action = 'Investment' OR Action = 'Installment' THEN Amount ELSE 0 END`)), "totalOut"],
 				[fn("SUM", literal(`CASE WHEN Action = 'Debit' THEN Amount ELSE 0 END`)), "totalDebit"],
 				[fn("SUM", literal(`CASE WHEN Action = 'Credit' THEN Amount ELSE 0 END`)), "totalCredit"],
 			],
