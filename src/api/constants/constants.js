@@ -1,5 +1,5 @@
 module.exports = {
-	DevelopMood: false,
+	DevelopMood: true,
 	ProjectName: "DhanYug",
 	resetLink: "https://dhanyug.netlify.app/login",
 	loginLink: "https://dhanyug.netlify.app/login",
