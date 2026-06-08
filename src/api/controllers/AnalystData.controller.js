@@ -740,11 +740,17 @@ exports.RecodeListController = async (payloadUser, payloadBody) => {
 			BranchId: BranchId,
 			isDeleted: false,
 		};
-		let subQuery = `( SELECT  SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE  t2.AccountId = fn_transactions.AccountId AND
-						  (
-							t2.Date < fn_transactions.Date OR
-							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
-						  ) AND  t2.isDeleted = false ) + ( SELECT StartAmount FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.AccountId )`;
+		let subQuery = `(
+			SELECT COALESCE(SUM(t2.AccountAmount), 0)
+			FROM fn_transactions t2
+				WHERE t2.AccountId = fn_transactions.AccountId
+					AND ( t2.Date < fn_transactions.Date 
+						OR ( t2.Date = fn_transactions.Date
+						AND t2.createdAt <= fn_transactions.createdAt ) 
+					) AND t2.isDeleted = false ) +
+					( SELECT COALESCE(StartAmount, 0) 
+					FROM fn_accounts
+					WHERE fn_accounts.AccountId = fn_transactions.AccountId )`;
 
 		if (Duration) {
 			const {StartDate, EndDate} = await durationFindFun(Duration);
@@ -758,38 +764,80 @@ exports.RecodeListController = async (payloadUser, payloadBody) => {
 		if (PartyId) {
 			whereCondition.PartyId = PartyId;
 
+			// subQuery = `(
+			// 	(SELECT StartAmount FROM fn_parties WHERE fn_parties.PartyId = fn_transactions.PartyId) -
+			// 	(SELECT SUM(t2.AccountAmount)
+			// 	 FROM fn_transactions t2
+			// 	 WHERE t2.PartyId = fn_transactions.PartyId
+			// 	   AND (
+			// 		 t2.Date < fn_transactions.Date OR
+			// 		 (t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+			// 	   )
+			// 	   AND t2.isDeleted = false
+			// 	)
+			//   )`;
+
 			subQuery = `(
-				(SELECT StartAmount FROM fn_parties WHERE fn_parties.PartyId = fn_transactions.PartyId) - 
-				(SELECT SUM(t2.AccountAmount)
-				 FROM fn_transactions t2
-				 WHERE t2.PartyId = fn_transactions.PartyId
-				   AND (
-					 t2.Date < fn_transactions.Date OR
-					 (t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
-				   )
-				   AND t2.isDeleted = false
-				)
-			  )`;
+				( SELECT COALESCE(StartAmount, 0) FROM fn_parties WHERE fn_parties.PartyId = fn_transactions.PartyId )
+				- ( SELECT COALESCE(SUM(t2.AccountAmount), 0)
+				FROM fn_transactions t2
+					WHERE t2.PartyId = fn_transactions.PartyId
+						AND ( 
+							t2.Date < fn_transactions.Date
+							OR ( 
+								t2.Date = fn_transactions.Date
+								AND t2.createdAt <= fn_transactions.createdAt
+							)
+						)
+						AND t2.isDeleted = false
+					)
+				)`;
 		}
 
 		if (CategoryId) {
 			whereCondition.CategoryId = CategoryId;
 
-			subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.CategoryId = fn_transactions.CategoryId AND
-						  (
-							t2.Date < fn_transactions.Date OR
-							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
-						  ) AND  t2.isDeleted = false ) + 0`;
+			subQuery = `
+			(SELECT COALESCE(SUM(t2.AccountAmount), 0)
+				FROM fn_transactions t2
+					WHERE t2.CategoryId = fn_transactions.CategoryId
+						AND (
+							t2.Date < fn_transactions.Date
+							OR ( t2.Date = fn_transactions.Date
+								AND t2.createdAt <= fn_transactions.createdAt
+							)
+						)
+						AND t2.isDeleted = false
+				)`;
+
+			// subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.CategoryId = fn_transactions.CategoryId AND
+			// 			  (
+			// 				t2.Date < fn_transactions.Date OR
+			// 				(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+			// 			  ) AND  t2.isDeleted = false ) + 0`;
 		}
 
 		if (SubCategoryId) {
 			whereCondition.SubCategoryId = SubCategoryId;
 
-			subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.SubCategoryId = fn_transactions.SubCategoryId AND
-						  (
-							t2.Date < fn_transactions.Date OR
-							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
-						  ) AND  t2.isDeleted = false ) + 0`;
+			subQuery = `
+			(SELECT COALESCE(SUM(t2.AccountAmount), 0)
+				FROM fn_transactions t2
+					WHERE t2.SubCategoryId = fn_transactions.SubCategoryId
+						AND (
+							t2.Date < fn_transactions.Date
+							OR ( t2.Date = fn_transactions.Date
+								AND t2.createdAt <= fn_transactions.createdAt
+							)
+						)
+						AND t2.isDeleted = false
+				)`;
+
+			// subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.SubCategoryId = fn_transactions.SubCategoryId AND
+			// 			  (
+			// 				t2.Date < fn_transactions.Date OR
+			// 				(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+			// 			  ) AND  t2.isDeleted = false ) + 0`;
 		}
 
 		if (SearchKey) {
@@ -828,6 +876,10 @@ exports.RecodeListController = async (payloadUser, payloadBody) => {
 						WHEN Action IN ('From', 'To') THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
 						WHEN Action = 'Investment' THEN CONCAT('Invest to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
 						WHEN Action = 'Installment' THEN CONCAT('EMI to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+						WHEN Action = 'Payer' THEN CONCAT('Paid for :', ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+						WHEN Action = 'Buyer' THEN CONCAT('Paid by :', ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+						WHEN Action = 'Return' THEN CONCAT('Return to :', ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+						WHEN Action = 'Refund' THEN CONCAT('Refund to :', ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
 						ELSE ''
 					  END
 					`),
@@ -861,7 +913,10 @@ exports.RecodeListController = async (payloadUser, payloadBody) => {
 			],
 			limit: limit,
 			offset: offset,
-			order: [["Date", "DESC"]],
+			order: [
+				["Date", "DESC"],
+				["createdAt", "DESC"],
+			],
 			raw: true,
 		});
 
@@ -869,7 +924,10 @@ exports.RecodeListController = async (payloadUser, payloadBody) => {
 			attributes: [[Sequelize.literal(subQuery), "Balance"], "TransactionId", "Action", "Date", "CategoryId", "SubCategoryId", "AccountId", "TransferToAccountId", "AccountAmount"],
 			where: whereCondition,
 			group: ["Date"],
-			order: [["Date", "ASC"]],
+			order: [
+				["Date", "ASC"],
+				["createdAt", "ASC"],
+			],
 			raw: true,
 		});
 
@@ -1184,12 +1242,22 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 			isDeleted: false,
 		};
 
-		let subQuery = `( SELECT  SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE  t2.AccountId = fn_transactions.AccountId AND
-						  (
-							t2.Date < fn_transactions.Date OR
-							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
-						  ) AND  t2.isDeleted = false ) + ( SELECT StartAmount FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.AccountId )`;
-
+		let subQuery = `
+			(SELECT COALESCE(SUM(t2.AccountAmount), 0)
+			FROM fn_transactions t2
+				WHERE t2.AccountId = fn_transactions.AccountId
+					AND (
+						t2.Date < fn_transactions.Date
+						OR ( t2.Date = fn_transactions.Date
+							AND t2.TransactionId <= fn_transactions.TransactionId
+						)
+					)
+					AND t2.isDeleted = false
+				)
+				+
+				(SELECT COALESCE(StartAmount, 0)
+				FROM fn_accounts
+				WHERE fn_accounts.AccountId = fn_transactions.AccountId)`;
 		if (AccountId) {
 			whereCondition.AccountId = AccountId;
 		}
@@ -1197,38 +1265,92 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 		if (PartyId) {
 			whereCondition.PartyId = PartyId;
 
-			subQuery = `(
-				(SELECT StartAmount FROM fn_parties WHERE fn_parties.PartyId = fn_transactions.PartyId) - 
-				(SELECT SUM(t2.AccountAmount)
-				 FROM fn_transactions t2
-				 WHERE t2.PartyId = fn_transactions.PartyId
-				   AND (
-					 t2.Date < fn_transactions.Date OR
-					 (t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
-				   )
-				   AND t2.isDeleted = false
+			// subQuery = `(
+			// 	(SELECT StartAmount FROM fn_parties WHERE fn_parties.PartyId = fn_transactions.PartyId) -
+			// 	(SELECT SUM(t2.AccountAmount)
+			// 	 FROM fn_transactions t2
+			// 	 WHERE t2.PartyId = fn_transactions.PartyId
+			// 	   AND (
+			// 		 t2.Date < fn_transactions.Date OR
+			// 		 (t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+			// 	   )
+			// 	   AND t2.isDeleted = false
+			// 	)
+			//   )`;
+
+			subQuery = `
+			( 
+				(
+					SELECT COALESCE(StartAmount,0) 
+					FROM fn_parties 
+					WHERE fn_parties.PartyId = fn_transactions.PartyId
 				)
-			  )`;
+				-
+				(
+					SELECT COALESCE(SUM(t2.AccountAmount),0)
+					FROM fn_transactions t2
+					WHERE t2.PartyId = fn_transactions.PartyId
+					AND (
+						t2.Date < fn_transactions.Date
+						OR (
+							t2.Date = fn_transactions.Date
+							AND t2.TransactionId <= fn_transactions.TransactionId
+						)
+					)
+					AND t2.isDeleted = false
+				)
+			)
+			`;
 		}
 
 		if (CategoryId) {
 			whereCondition.CategoryId = CategoryId;
 
-			subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.CategoryId = fn_transactions.CategoryId AND
-						  (
-							t2.Date < fn_transactions.Date OR
-							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
-						  ) AND  t2.isDeleted = false ) + 0`;
+			// subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.CategoryId = fn_transactions.CategoryId AND
+			// 			  (
+			// 				t2.Date < fn_transactions.Date OR
+			// 				(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+			// 			  ) AND  t2.isDeleted = false ) + 0`;
+
+			subQuery = `
+			(
+				SELECT COALESCE(SUM(t2.AccountAmount),0)
+				FROM fn_transactions t2
+				WHERE t2.CategoryId = fn_transactions.CategoryId
+				AND (
+					t2.Date < fn_transactions.Date
+					OR (
+						t2.Date = fn_transactions.Date
+						AND t2.TransactionId <= fn_transactions.TransactionId
+					)
+				)
+				AND t2.isDeleted = false
+			)`;
 		}
 
 		if (SubCategoryId) {
 			whereCondition.SubCategoryId = SubCategoryId;
 
-			subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.SubCategoryId = fn_transactions.SubCategoryId AND
-						  (
-							t2.Date < fn_transactions.Date OR
-							(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
-						  ) AND  t2.isDeleted = false ) + 0`;
+			subQuery = `
+			(
+				SELECT COALESCE(SUM(t2.AccountAmount),0)
+				FROM fn_transactions t2
+				WHERE t2.SubCategoryId = fn_transactions.SubCategoryId
+				AND (
+					t2.Date < fn_transactions.Date
+					OR (
+						t2.Date = fn_transactions.Date
+						AND t2.TransactionId <= fn_transactions.TransactionId
+					)
+				)
+				AND t2.isDeleted = false
+			)`;
+
+			// subQuery = `( SELECT SUM(t2.AccountAmount) FROM fn_transactions t2 WHERE t2.SubCategoryId = fn_transactions.SubCategoryId AND
+			// 			  (
+			// 				t2.Date < fn_transactions.Date OR
+			// 				(t2.Date = fn_transactions.Date AND t2.TransactionId <= fn_transactions.TransactionId)
+			// 			  ) AND  t2.isDeleted = false ) + 0`;
 		}
 
 		let timeDurationFn;
@@ -1261,7 +1383,10 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 			],
 			where: whereCondition,
 			group: [fn(Duration, col("Date"))],
-			order: [[fn(Duration, col("Date")), "DESC"]],
+			order: [
+				[fn(Duration, col("Date")), "DESC"],
+				["Date", "DESC"],
+			],
 			raw: true,
 		});
 
@@ -1337,26 +1462,25 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 					// ],
 					[
 						Sequelize.literal(`
-        CASE
-          WHEN fn_transactions.Action IN ('In', 'Out') THEN CONCAT(fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
-          WHEN fn_transactions.Action IN ('Credit', 'Debit') THEN CONCAT(fn_transactions.Action, ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
-          WHEN fn_transactions.Action = 'From' THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
-          WHEN fn_transactions.Action = 'Investment' THEN CONCAT('Invest into: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
-          WHEN fn_transactions.Action = 'Refund' THEN CONCAT('Received money back from ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
-          WHEN fn_transactions.Action = 'Return' THEN CONCAT('Returned money to ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
-          WHEN fn_transactions.Action = 'Payer' THEN CONCAT('Paid for ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName, ' for ', fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
-          WHEN fn_transactions.Action = 'Buyer' THEN CONCAT('Paid by ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName, ' for ', fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
-        WHEN fn_transactions.Action = 'Installment' THEN CONCAT('EMI to : ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
-
-		  WHEN fn_transactions.Action = 'To' THEN CONCAT(
-            'Transfer (', 
-              (SELECT pt.Action FROM fn_transactions AS pt WHERE pt.TransactionId = fn_transactions.ParentTransactionId LIMIT 1), 
-              ') to: ',
-              (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId)
-          )
-          ELSE ''
-        END
-      `),
+						CASE
+							WHEN fn_transactions.Action IN ('In', 'Out') THEN CONCAT(fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+							WHEN fn_transactions.Action IN ('Credit', 'Debit') THEN CONCAT(fn_transactions.Action, ' - ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+							WHEN fn_transactions.Action = 'From' THEN CONCAT('Transfer to: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+							WHEN fn_transactions.Action = 'Investment' THEN CONCAT('Invest into: ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+							WHEN fn_transactions.Action = 'Refund' THEN CONCAT('Received money back from ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+							WHEN fn_transactions.Action = 'Return' THEN CONCAT('Returned money to ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName)
+							WHEN fn_transactions.Action = 'Payer' THEN CONCAT('Paid for ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName, ' for ', fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+							WHEN fn_transactions.Action = 'Buyer' THEN CONCAT('Paid by ', fn_party.PartyFirstName, ' ', fn_party.PartyLastName, ' for ', fn_category.CategoryName, ' / ', fn_sub_category.SubCategoriesName)
+							WHEN fn_transactions.Action = 'Installment' THEN CONCAT('EMI to : ', (SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId))
+							WHEN fn_transactions.Action = 'To' THEN CONCAT('Transfer (', 
+								(
+									SELECT pt.Action FROM fn_transactions AS pt WHERE pt.TransactionId = fn_transactions.ParentTransactionId LIMIT 1
+								),') to: ',
+								(
+									SELECT AccountName FROM fn_accounts WHERE fn_accounts.AccountId = fn_transactions.TransferToAccountId
+								)
+							)ELSE '' 
+						END`),
 						"Details",
 					],
 					[
@@ -1402,7 +1526,10 @@ exports.PerformanceController = async (payloadUser, payloadBody) => {
 					},
 				],
 				raw: true,
-				order: [["Date", "DESC"]],
+				order: [
+					["Date", "DESC"],
+					["TransactionId", "DESC"],
+				],
 			});
 
 			// Push to final list
