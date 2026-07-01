@@ -2,13 +2,16 @@
 // require("./src/helpers/EnvCheck.helper")(process, process.argv[2]);
 
 require("dotenv").config();
+
 const express = require("express");
 const app = express();
-const port = process.env.PORT || 9001;
+
 const cors = require("cors");
+const path = require("path");
+const http = require("http");
 const bodyParser = require("body-parser");
 const fileUpload = require("express-fileupload");
-const path = require("path");
+
 const {DefaultDatabaseAction, DefaultEmailSet} = require("./src/api/controllers/Basic.controller");
 const {serverRestarted} = require("./src/helpers/Email.helper");
 
@@ -31,14 +34,29 @@ app.use("/public", express.static(path.join(__dirname, "public")));
 require("./src/api/models/index"); //  All Models and Database connection
 require("./src/api/routers/index")(app); // All Router index
 
-setTimeout(async () => {
-	console.log("Executing task...");
-	await DefaultEmailSet();
-	await serverRestarted();
-	// await  DefaultDatabaseAction();
-}, 1 * 60 * 1000);
+setTimeout(
+	async () => {
+		console.log("Executing task...");
+		await DefaultEmailSet();
+		await serverRestarted();
+		// await  DefaultDatabaseAction();
+	},
+	1 * 60 * 1000,
+);
 
-// ------------ ||  Server listen port  || ------------ //
-app.listen(port, (error) => {
-	error == null ? console.log(`\x1b[92mServer is running on port -- ${port}\x1b[39m `) : console.log("\x1b[91mServer error \x1b[91m", error);
+const server = http.createServer(app);
+const port = process.env.PORT || 3000;
+
+// ------------ ||  Server Listen Port  || ------------ //
+
+server.listen(port, (error) => {
+	if (error) {
+		logError(error, null, {
+			error_type: "ServerStartError",
+			severity: "critical",
+		});
+		console.log("\x1b[91mServer error \x1b[91m", error);
+	} else {
+		console.log(`\x1b[92mServer is running on port -- ${port}\x1b[39m `);
+	}
 });

@@ -6,6 +6,7 @@ const db = require("../models/index");
 
 const {getPagination, durationFindFun} = require("../../helpers/Actions.helper");
 const {SUCCESS_CODE, BAD_REQUEST_CODE, SERVER_ERROR_CODE} = require("../constants/statusCode");
+const { parseJsonField } = require("../../utils/utils");
 
 const CategoriesModel = db.CategoriesModel;
 const SubCategoriesModel = db.SubCategoriesModel;
@@ -250,6 +251,14 @@ exports.CategoriesFetchListController = async (payloadUser, payloadBody) => {
 			raw: true,
 		});
 
+		const response = await Promise.all(
+			fetchList.map(async (item) => ({
+				...item,
+				TransactionSummary: parseJsonField(item.TransactionSummary),
+				SubCategories: parseJsonField(item.SubCategories),
+			})),
+		);
+
 		if (Action) {
 			const totalCount = await CategoriesModel.count({
 				where: whereCondition,
@@ -265,7 +274,7 @@ exports.CategoriesFetchListController = async (payloadUser, payloadBody) => {
 					status: true,
 					message: "SUCCESS",
 					data: {
-						list: fetchList,
+						list: response,
 						totalRecords: totalCount,
 						totalPages: totalPage,
 						currentPage: parseInt(Page),
@@ -278,7 +287,7 @@ exports.CategoriesFetchListController = async (payloadUser, payloadBody) => {
 				result: {
 					status: true,
 					message: "SUCCESS",
-					data: {list: fetchList},
+					data: {list: response},
 				},
 			};
 		}
@@ -355,7 +364,7 @@ exports.CategoryModifyController = async (payloadUser, payloadBody) => {
 						Icon: Icon,
 						Color: Color,
 					},
-					{where: {CategoryId: CategoryId}}
+					{where: {CategoryId: CategoryId}},
 				);
 
 				return {
@@ -678,7 +687,7 @@ exports.SubCategoryModifyController = async (payloadUser, payloadBody) => {
 						Icon: Icon,
 						Description: Description,
 					},
-					{where: {SubCategoryId: SubCategoryId}}
+					{where: {SubCategoryId: SubCategoryId}},
 				);
 
 				return {
@@ -1014,7 +1023,7 @@ exports.LabelModifyController = async (payloadUser, payloadBody) => {
 						Color: Color,
 						Description: Description,
 					},
-					{where: {LabelId: LabelId}}
+					{where: {LabelId: LabelId}},
 				);
 
 				return {
@@ -1389,7 +1398,7 @@ exports.AccountModifyController = async (payloadUser, payloadBody) => {
 						Color: Color,
 						Description: Description?.trim(),
 					},
-					{where: {AccountId: AccountId}}
+					{where: {AccountId: AccountId}},
 				);
 
 				return {
@@ -1772,7 +1781,7 @@ exports.PartyModifyController = async (payloadUser, payloadBody) => {
 						Address: Address?.trim(),
 						Description: Description?.trim(),
 					},
-					{where: {PartyId: PartyId}}
+					{where: {PartyId: PartyId}},
 				);
 
 				return {
@@ -2167,7 +2176,7 @@ exports.LongsModifyController = async (payloadUser, payloadBody) => {
 					OrgId,
 					BranchId,
 				},
-				{where: {LoanId}}
+				{where: {LoanId}},
 			);
 			loanRecord = {LoanId};
 			// Wipe and regenerate schedule for simplicity (if you need to preserve already-paid rows, adapt logic)

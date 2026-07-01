@@ -4,6 +4,7 @@ const {SUCCESS_CODE, BAD_REQUEST_CODE, SERVER_ERROR_CODE} = require("../constant
 const db = require("../models/index");
 
 const {getPagination, durationFindFun} = require("../../helpers/Actions.helper");
+const {parseJsonField} = require("../../utils/utils");
 
 const PartiesModel = db.PartiesModel;
 const AccountsModel = db.AccountsModel;
@@ -196,7 +197,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 				{
 					CurrentAmount: Sequelize.literal(`CurrentAmount + ${targetTransaction?.AccountAmount - targetTransaction?.AccountAmount * 2}`),
 				},
-				{where: {AccountId: targetTransaction?.AccountId}}
+				{where: {AccountId: targetTransaction?.AccountId}},
 			);
 
 			if (targetTransaction?.Action == "From" || targetTransaction?.Action == "Investment" || targetTransaction?.Action == "Installment") {
@@ -208,7 +209,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					{
 						CurrentAmount: Sequelize.literal(`CurrentAmount + ${targetTransaction?.AccountAmount}`),
 					},
-					{where: {AccountId: targetTransaction?.TransferToAccountId}}
+					{where: {AccountId: targetTransaction?.TransferToAccountId}},
 				);
 			} else if (targetTransaction?.Action == "To") {
 				// await TransactionsModel.destroy({
@@ -228,7 +229,7 @@ exports.TransactionModifyController = async (payloadUser, payloadBody) => {
 					{
 						CurrentAmount: Sequelize.literal(`CurrentAmount + ${targetTransaction?.PartyAmount - targetTransaction?.PartyAmount * 2}`),
 					},
-					{where: {PartyId: targetTransaction?.PartyId}}
+					{where: {PartyId: targetTransaction?.PartyId}},
 				);
 			}
 
@@ -666,6 +667,20 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
 			raw: true,
 		});
 
+		const response = await Promise.all(
+			fetchList.map(async (item) => ({
+				...item,
+				CategoryDetails: parseJsonField(item.CategoryDetails),
+				SubCategoryDetails: parseJsonField(item.SubCategoryDetails),
+				AccountDetails: parseJsonField(item.AccountDetails),
+				TransferDetails: parseJsonField(item.TransferDetails),
+				PartyDetails: parseJsonField(item.PartyDetails),
+				TagList: parseJsonField(item.TagList, []),
+			})),
+		);
+
+		console.log("TransactionFetchListController: response:", response);
+
 		if (Action) {
 			const totalCount = await TransactionsModel.count({
 				where: whereCondition,
@@ -681,7 +696,7 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
 					status: true,
 					message: "SUCCESS",
 					data: {
-						list: fetchList,
+						list: response,
 						totalRecords: totalCount,
 						totalPages: totalPage,
 						currentPage: parseInt(Page),
@@ -694,7 +709,7 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
 				result: {
 					status: true,
 					message: "SUCCESS",
-					data: {list: fetchList},
+					data: {list: response},
 				},
 			};
 		}
@@ -874,7 +889,7 @@ exports.TransactionRemoveController = async (payloadUser, payloadQuery) => {
 			{
 				CurrentAmount: Sequelize.literal(`CurrentAmount + ${targetTransaction?.AccountAmount - targetTransaction?.AccountAmount * 2}`),
 			},
-			{where: {AccountId: targetTransaction?.AccountId}}
+			{where: {AccountId: targetTransaction?.AccountId}},
 		);
 
 		if (targetTransaction?.Action == "From" || targetTransaction?.Action == "Investment" || targetTransaction?.Action == "Installment") {
@@ -886,7 +901,7 @@ exports.TransactionRemoveController = async (payloadUser, payloadQuery) => {
 				{
 					CurrentAmount: Sequelize.literal(`CurrentAmount + ${targetTransaction?.AccountAmount}`),
 				},
-				{where: {AccountId: targetTransaction?.TransferToAccountId}}
+				{where: {AccountId: targetTransaction?.TransferToAccountId}},
 			);
 		} else if (targetTransaction?.Action == "To") {
 			// await TransactionsModel.destroy({
@@ -906,7 +921,7 @@ exports.TransactionRemoveController = async (payloadUser, payloadQuery) => {
 				{
 					CurrentAmount: Sequelize.literal(`CurrentAmount + ${targetTransaction?.PartyAmount - targetTransaction?.PartyAmount * 2}`),
 				},
-				{where: {PartyId: targetTransaction?.PartyId}}
+				{where: {PartyId: targetTransaction?.PartyId}},
 			);
 		}
 
