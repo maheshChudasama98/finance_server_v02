@@ -17,6 +17,10 @@ module.exports = (app) => {
 		}
 	});
 
+	app.use("/dhanyug", (req, res, next) => {
+		next();
+	});
+
 	require("./Org.router")(app);
 	require("./Auth.router")(app);
 	require("./User.router")(app);

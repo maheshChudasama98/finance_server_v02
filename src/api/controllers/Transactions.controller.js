@@ -679,8 +679,6 @@ exports.TransactionFetchListController = async (payloadUser, payloadBody) => {
 			})),
 		);
 
-		console.log("TransactionFetchListController: response:", response);
-
 		if (Action) {
 			const totalCount = await TransactionsModel.count({
 				where: whereCondition,
@@ -740,7 +738,7 @@ exports.TransactionFetchDataController = async (payloadUser, payloadBody) => {
 			raw: true,
 		});
 
-		const categoriesList = await CategoriesModel.findAll({
+		const response = await CategoriesModel.findAll({
 			attributes: [
 				"CategoryId",
 				"CategoryName",
@@ -789,6 +787,13 @@ exports.TransactionFetchDataController = async (payloadUser, payloadBody) => {
 			order: [["CategoryName", "ASC"]],
 			raw: true,
 		});
+
+		const categoriesList = await Promise.all(
+			response.map(async (item) => ({
+				...item,
+				SubCategories: parseJsonField(item.SubCategories),
+			})),
+		);
 
 		const labelsList = await LabelsModel.findAll({
 			attributes: ["LabelId", "LabelName", "Color", "Description", "isUsing", "isActive", "createdAt", "updatedAt"],

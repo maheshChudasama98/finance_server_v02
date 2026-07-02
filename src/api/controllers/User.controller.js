@@ -10,6 +10,7 @@ const {FileUpload} = require("../../helpers/FileUpload.helper");
 const {UserProfileImagePath, superAdminRoleId, OrgImagePath, BranchImagePath} = require("../constants/constants");
 const {registrationUser} = require("../../helpers/Email.helper");
 const {UserBasedDefaultCategory} = require("./Basic.controller");
+const {parseJsonField} = require("../../utils/utils");
 const UserModel = db.UserModel;
 const OrgUsersModel = db.OrgUsersModel;
 const ModulesModel = db.ModulesModel;
@@ -204,6 +205,11 @@ exports.UserInfoController = async (payloadUser) => {
 			raw: true,
 		});
 
+		const response = {
+			...UserInfo,
+			BranchesList: parseJsonField(UserInfo.BranchesList),
+		};
+
 		return {
 			httpCode: SUCCESS_CODE,
 			result: {
@@ -211,15 +217,15 @@ exports.UserInfoController = async (payloadUser) => {
 				message: "SUCCESS",
 				data: {
 					Branch: {
-						BranchesList: UserDetails?.BranchesList,
-						SelectBranch: UserDetails?.SelectBranch,
+						BranchesList: parseJsonField(UserDetails?.BranchesList),
+						SelectBranch: parseJsonField(UserDetails?.SelectBranch),
 					},
 					Org: {
-						OrgsList: UserDetails?.OrgsList,
-						SelectOrg: UserDetails?.SelectOrg,
+						OrgsList: parseJsonField(UserDetails?.OrgsList),
+						SelectOrg: parseJsonField(UserDetails?.SelectOrg),
 					},
 					PermissionList,
-					UserInfo: UserInfo,
+					UserInfo: response,
 				},
 			},
 		};

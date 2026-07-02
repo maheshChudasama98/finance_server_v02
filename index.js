@@ -51,11 +51,7 @@ const port = process.env.PORT || 3000;
 
 server.listen(port, (error) => {
 	if (error) {
-		logError(error, null, {
-			error_type: "ServerStartError",
-			severity: "critical",
-		});
-		console.log("\x1b[91mServer error \x1b[91m", error);
+		console.error("\x1b[91mServer error \x1b[91m", error);
 	} else {
 		console.log(`\x1b[92mServer is running on port -- ${port}\x1b[39m `);
 	}
