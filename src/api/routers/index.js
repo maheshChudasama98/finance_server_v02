@@ -9,16 +9,16 @@ const {serverDownRestarted} = require("../../helpers/Email.helper");
 module.exports = (app) => {
 	// ------------ || Default route path  || ------------ //
 
+	// app.use("/dhanyug", (req, res, next) => {
+	// 	next();
+	// });
+
 	app.get("/", (req, res) => {
 		try {
 			return res.status(200).send(ENGLISH.DEFAULT_PATH);
 		} catch (error) {
 			return res.status(500).send({status: false, message: error.message});
 		}
-	});
-
-	app.use("/dhanyug", (req, res, next) => {
-		next();
 	});
 
 	require("./Org.router")(app);
@@ -42,5 +42,5 @@ module.exports = (app) => {
 		}
 	});
 
-	const URL = "https://dhanyug.onrender.com/";
+	const URL = "https://dharmeshbook.com/dhanyug";
 };

@@ -8,12 +8,12 @@ const app = express();
 
 const cors = require("cors");
 const path = require("path");
-const http = require("http");
 const bodyParser = require("body-parser");
 const fileUpload = require("express-fileupload");
+const http = require("http");
 
-const {DefaultDatabaseAction, DefaultEmailSet} = require("./src/api/controllers/Basic.controller");
 const {serverRestarted} = require("./src/helpers/Email.helper");
+const {DefaultDatabaseAction, DefaultEmailSet} = require("./src/api/controllers/Basic.controller");
 
 // --------------------------------------------------------------------------
 
@@ -31,8 +31,12 @@ app.use(fileUpload()); // Enable files upload
 app.use(express.static(path.join(__dirname, "/public"))); // Static folder for serving files
 app.use("/public", express.static(path.join(__dirname, "public")));
 
+const apiRouter = express.Router();
+
 require("./src/api/models/index"); //  All Models and Database connection
-require("./src/api/routers/index")(app); // All Router index
+
+require("./src/api/routers/index")(apiRouter);
+app.use("/dhanyug", apiRouter);
 
 setTimeout(
 	async () => {
@@ -45,7 +49,7 @@ setTimeout(
 );
 
 const server = http.createServer(app);
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3300;
 
 // ------------ ||  Server Listen Port  || ------------ //
 
